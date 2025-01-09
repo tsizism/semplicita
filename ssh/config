@@ -1,0 +1,4 @@
+Host ubuntu-latitude
+	HostName 192.168.2.200
+	User mark
+	IdentityFile ~/.ssh/Id_rsa.latitude
