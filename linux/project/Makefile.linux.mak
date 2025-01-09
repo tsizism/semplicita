@@ -68,7 +68,7 @@ build_trace:
 ## -v print the names of packages as they are compiled. -o output -a force rebuilding of packages that are already up-to-date.
 ## builds front-end service
 build_fe:
-	@echo "Building fe binary "
+	@echo "Building fe binary"
 	cd ../fe && env GOOS=linux CGO_ENABLED=0 go build -a -o ./app/${FRONT_END_BINARY} ./cmd/web && ls -la ./app/${FRONT_END_BINARY}
 	@echo "Done!"
 

@@ -1,4 +1,6 @@
 https://github.com/tsizism
+git config --global user.email tsizism@gmail.com
+git config --global user.name mark
 git init -b main
 git branch -a  
 git add .

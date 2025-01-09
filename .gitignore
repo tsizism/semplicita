@@ -24,5 +24,6 @@ go.work.sum
 # env file
 .env
 
-/app/*
-/db-data/*
+.DS_Store
+app
+db-data
