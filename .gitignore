@@ -27,3 +27,4 @@ go.work.sum
 .DS_Store
 app
 db-data
+feApp
