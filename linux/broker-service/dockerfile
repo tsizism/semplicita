@@ -1,0 +1,20 @@
+#d build --no-cache -t brokerapp  . -f .\dockerfile.exec
+## brokerapp    latest    16dd7613a751   21 seconds ago   24.3MB
+#d  run -it -p 8081:80 brokerapp
+#d  run -it -d -p 8081:80 --rm --name brokerApp brokerapp
+#
+##--rm Automatically remove the container and its associated anonymous volumes when it exits
+#d logs -f brokerApp
+#d logs -f --tail 10 brokerApp
+
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY ./app/brokerApp /app
+
+#WORKDIR /app
+
+RUN chmod +x /app/brokerApp
+
+CMD ["/app/brokerApp"]

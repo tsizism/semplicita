@@ -1,0 +1,9 @@
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY ./app/traceApp /app
+
+RUN chmod +x /app/traceApp
+
+CMD [ "/app/traceApp" ]

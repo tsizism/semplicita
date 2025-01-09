@@ -1,0 +1,10 @@
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY ./app/mailApp /app
+COPY templates /templates
+
+RUN chmod +x /app/mailApp
+
+CMD [ "/app/mailApp" ]

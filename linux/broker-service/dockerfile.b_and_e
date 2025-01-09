@@ -1,0 +1,25 @@
+#base go image
+
+# skip build if using make --> up_build: build_broker
+
+FROM golang:1.23.3-alpine AS build
+
+RUN mkdir /app
+
+COPY . /app
+
+WORKDIR /app
+
+#RUN CGO_ENABLED=0 GOOS=linux GARCH=amd64 `go build -o brokerApp ./cmd/api
+RUN CGO_ENABLED=0  `go build -o brokerApp ./cmd/api`
+
+RUN chmod +x /app/brokerApp
+
+# buiding ANOTHER a tiny docker image
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY --from=build /app/brokerApp /app
+
+CMD ["/app/brokerApp"]

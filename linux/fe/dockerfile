@@ -1,0 +1,12 @@
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY ./app/feApp /app
+COPY ./cmd/web/templates /cmd/web/templates
+
+RUN chmod +x /app/feApp
+
+EXPOSE 8888
+
+CMD [ "/app/feApp" ]

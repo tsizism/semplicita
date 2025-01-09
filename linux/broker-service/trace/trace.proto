@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package trace;
+
+option go_package = "/trace";
+
+message Trace {
+    string src = 1;
+    string data = 2;
+}
+
+message TraceRequest {
+    Trace TraceEntry = 1;
+}
+
+message TraceResponse {
+    string result = 1;
+}
+
+service TraceService {
+    rpc TraceEvent(TraceRequest) returns (TraceResponse);
+}
+

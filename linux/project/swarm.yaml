@@ -1,0 +1,91 @@
+version : '3'
+
+#name: semplicita_swarm
+services:
+  fe:
+    image: tsizism/fe:1.0 
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  authentication-service:
+    image: tsizism/authentication-service:1.0 
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+
+  broker-service:
+    image: tsizism/broker-service:1.0 
+    ports:
+      - "8080:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  listener-service:
+    image: tsizism/listener-service:1.0
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  mail-service:
+    image: tsizism/mail-service:1.0
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      MAIL_PORT:  1025
+      MAIL_DOMAIN: localhost
+      MAIL_HOST: mailhog
+      MAIL_ENCRYPTION: none      
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_FROMNAME: "John Smith"
+      MAIL_FROMADDR: JohnSmith@example.com
+
+  trace-service:
+    image: tsizism/trace-service:1.0
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  mailhog:
+    image: 'mailhog/mailhog:latest'
+    ports:
+      - "8025:8025"
+    deploy:
+      mode: global
+
+  mongodb:
+    image: 'mongo:6.0-rc-jammy'
+    ports:
+      - "27017:27017"
+    deploy:
+      mode: global
+    environment:
+      MONGO_INITDB_DATABASE: trace
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ./db-data/mongo/:/data/db/
+
+  postgres:
+    image: 'postgres:14.2'
+    ports:
+      - "5432:5432"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users
+    volumes:
+      - ./db-data/postgres/:/var/lib/postgresql/data/
+
+  rabbitmq:
+    image: 'rabbitmq:alpine'
+    deploy:
+      mode: global

@@ -1,0 +1,120 @@
+https://github.com/tsizism
+git init -b main
+git branch -a  
+git add .
+git config --list --global
+git config --global --add safe.directory '*'
+git config --global --edit
+
+
+Insatll VSCode and Go extension
+brew install go
+brew install make
+Install docker desktop and vscode extension 
+
+jinliming2 - Go Template Support extension 
+
+go mod init github.com/tsizism/semplicita/linux/broker
+
+https://github.com/go-chi/chi
+go get -u github.com/go-chi/chi/v5
+go get -u github.com/go-chi/chi/v5/middleware
+go get -u github.com/go-chi/cors
+
+
+https://pkg.go.dev/cmd/go/internal/get
+The -u flag instructs get to use the network to update the named packages
+and their dependencies. By default, get uses the network to check out
+missing packages but does not use it to look for updates to existing packages.
+
+// Postgres Go client
+go get github.com/jackc/pgconn
+go get github.com/jackc/pgx/v4
+go get github.com/jackc/pgx/v4/stdlib
+
+go get github.com/jackc/pgx/v4@none
+go get github.com/jackc/pgx/v4/stdlib@none
+
+go get github.com/jackc/pgconn
+go get github.com/jackc/pgx/v5
+go get github.com/jackc/pgx/v5/stdlib
+
+pgAdmin4   https://www.pgadmin.org/
+https://www.beekeeperstudio.io/  - 4 pay
+
+go get go.mongodb.org/mongo-driver/mongo
+go get go.mongodb.org/mongo-driver/mongo/options
+
+go get github.com/rs/cors
+
+go get github.com/vanng822/go-premailer/premailer
+go get github.com/xhit/go-simple-mail/v2
+
+go get github.com/rabbitmq/amqp091-go
+
+
+Postrgess: /Users/Shared/semplicita/linux/project/docker-compose.yaml, pgAdmin --> Server : authserver --> Database: users --> Query Tool --> select * from users
+Mongo:     MongoDB Compass --> Connect using 'trace' connection (mongodb://admin:password@localhost:27017/) --> Database:  trace --> Collection trace
+MailHog:   http://localhost:8025/
+
+gRPC
+____
+https://grpc.io/docs/languages/go/quickstart/
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+go get google.golang.org/grpc
+go get google.golang.org/protobuf
+
+https://grpc.io/docs/protoc-installation/
+https://github.com/protocolbuffers/protobuf/releases/download/v29.1/protoc-29.1-win64.zip
+
+Mac:
+volumes visiable on Mac - /Users/Shared/semplicita/linux/project/db-data
+
+--------------------------
+docker registry
+
+d login -u tsizism   // D-!
+
+# d build 
+d build --no-cache -f authentication-service/dockerfile -t tsizism/authentication-service:1.0 authentication-service
+d build --no-cache -f broker-service/dockerfile -t tsizism/broker-service:1.0 broker-service
+d build --no-cache -f listener-service/dockerfile -t tsizism/listener-service:1.0 listener-service
+d build --no-cache -f mail-service/dockerfile -t tsizism/mail-service:1.0 mail-service
+d build --no-cache -f trace-service/dockerfile -t tsizism/trace-service:1.0 trace-service
+d build --no-cache -f ../fe/dockerfile -t tsizism/fe:1.0 ../fe
+
+So whenever you do docker build -t 'es:6.1' . you also need to run docker tag es:6.1 <username>/es:6.1
+
+d tag tsizism/fe:1.0 tsizism/fe:1.0
+
+d push tsizism/authentication-service:1.0
+d push tsizism/broker-service:1.0
+d push tsizism/listener-service:1.0
+d push tsizism/mail-service:1.0
+d push tsizism/trace-service:1.0
+d push tsizism/fe:1.0
+
+Swarm
+d service ls
+>Error response from daemon: This node is not a swarm manager. 
+>Use "docker swarm init" or "docker swarm join" to connect this node to swarm and try again.
+
+d swarm init
+    docker swarm join --token SWMTKN-1-4umg736a99i5nzy5veo6iz8wmxvz9le4damtd0vlj5abpl49hk-dgj6i2mjz1io96o82vk9nl8sx 192.168.65.3:2377
+
+d swarm join-token manager
+d swarm join-token worker
+
+d stack deploy -c swarm.yaml semplicita_swarm
+
+docker service rm semplicita_swarm_fe
+
+
+
+docker swarm leave -f 
+docker node rm 
+
+
+https://caddyserver.com/

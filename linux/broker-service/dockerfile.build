@@ -1,0 +1,29 @@
+# # base go image
+# d build --no-cache -t build  . -f .\dockerfile.build
+# # Takes ~60 sec: build latest 0296aa5a8716 39 seconds ago 505MB
+# # Creaate temp container "extract" with build:latest
+# d create --name extract build:latest
+# # 40353aae006f   build:latest   "/bin/sh"   43 seconds ago   Created             extract
+# # Create folder ./app
+# # Now, copy build results from container extract folder "app" to local app folder
+# d cp extract:/app/brokerApp ./app/
+## Remove temp container extract
+# d rm -f extract
+
+
+FROM golang:1.23.3-alpine AS build
+#as build4
+
+CMD echo "Hello world" 
+
+RUN mkdir /app
+
+COPY . /app
+
+WORKDIR /app
+
+#RUN CGO_ENABLED=0 GOOS=linux GARCH=amd64 `go build -o brokerApp ./cmd/api
+RUN CGO_ENABLED=0  `go build -o brokerApp ./cmd/api`
+
+RUN chmod +x /app/brokerApp
+

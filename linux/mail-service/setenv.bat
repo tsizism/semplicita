@@ -1,0 +1,21 @@
+@echo off
+REM Setting up environment variables for mail configuration
+
+SET MAIL_PORT=1025
+SET MAIL_DOMAIN=localhost
+SET MAIL_HOST=localhost
+SET MAIL_ENCRYPTION=none
+SET MAIL_USERNAME=""
+SET MAIL_PASSWORD=""
+SET MAIL_FROMNAME="John Smith"
+SET MAIL_FROMADDR=JohnSmith@example.com
+
+REM Display the environment variables to verify
+echo MAIL_PORT=%MAIL_PORT%
+echo MAIL_DOMAIN=%MAIL_DOMAIN%
+echo MAIL_HOST=%MAIL_HOST%
+echo MAIL_ENCRYPTION=%MAIL_ENCRYPTION%
+echo MAIL_USERNAME=%MAIL_USERNAME%
+echo MAIL_PASSWORD=%MAIL_PASSWORD%
+echo MAIL_FROMNAME=%MAIL_FROMNAME%
+echo MAIL_FROMADDR=%MAIL_FROMADDR%
