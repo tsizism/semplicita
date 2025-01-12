@@ -10,21 +10,21 @@ LISTENER_BINARY=listenerApp
 ## up: starts all containers in the background without forcing build -d, --detach
 up:
 	@echo "Starting Docker images..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "Docker images started!"
 
 ## up_build: stops docker-compose (if running), builds all projects and starts docker compose  , -d, --detach
 up_build: build_broker build_auth build_mail build_listener build_trace build_fe
 	@echo "Stopping docker images (if running...)"
-	docker-compose down
+	docker compose down
 	@echo "Building (when required) and starting docker images..."
-	docker-compose up --build -d
+	docker compose up --build -d
 	@echo "Docker images built and started!"
 
 ## down: stop docker compose
 down:
 	@echo "Stopping docker compose..."
-	docker-compose down
+	docker compose down
 	@echo "Done!"
 
 ## -v print the names of packages as they are compiled
@@ -82,7 +82,7 @@ build_front:
 ## start: starts local front end
 start: build_front
 	@echo "Starting local front end"
-	cd ../fe && ./${FRONT_END_BINARY} -port 80 &
+	cd ../fe && ./${FRONT_END_BINARY} -port 8888 &
 
 
 ## stop: stop local front end
