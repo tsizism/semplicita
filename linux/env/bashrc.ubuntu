@@ -130,5 +130,8 @@ alias gs='git status'
 alias gd='git diff'
 alias src='source ~/.bashrc'
 alias ver='lsb_release -a'
+alias lt='ls -trl'
+alias l.='ls -lad .*'
+alias lz='ls -lSr .*'
 
 
