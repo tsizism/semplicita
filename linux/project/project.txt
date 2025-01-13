@@ -10,6 +10,10 @@ git config --global --edit
 
 echo -n 'Z2hwX3IybWJQVEFTN3BTY0d2NjdxeWtjdTRoOFZWUXNJSDN1MVNuRQ==' | base64 -d
 
+sudo dpkg -i 
+sudo apt update
+
+
 
 Insatll VSCode and Go extension
 brew install go
@@ -58,7 +62,7 @@ https://www.beekeeperstudio.io/  - 4 pay
 pgAdmin4   https://www.pgadmin.org/
 Postrgess: /Users/Shared/semplicita/linux/project/docker-compose.yaml, pgAdmin --> Server : authserver --> Database: users --> Query Tool --> select * from users
 https://www.mongodb.com/try/download/compass
-Mongo:     MongoDB Compass --> Connect using 'trace' connection (mongodb://admin:password@localhost:27017/) --> Database:  trace --> Collection trace
+Mongo:     MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:password@localhost:27017/" --> Database:  trace --> Collection trace
 MailHog:   http://localhost:8025/
 
 gRPC

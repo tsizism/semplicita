@@ -16,15 +16,15 @@ up:
 ## up_build: stops docker-compose (if running), builds all projects and starts docker compose
 up_build: build_broker build_auth build_mail build_listener build_trace
 	@echo "Stopping docker images (if running...)"
-	docker compose down
+	docker-compose down
 	@echo "Building (when required) and starting docker images..."
-	docker compose up --build -d
+	docker-compose up --build -d
 	@echo "Docker images built and started!"
 
 ## down: stop docker compose
 down:
 	@echo "Stopping docker compose..."
-	docker compose down
+	docker-compose down
 	@echo "Done!"
 
 ## build_broker: builds the broker binary as a linux executable
