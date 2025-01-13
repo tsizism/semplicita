@@ -8,6 +8,8 @@ git config --list --global
 git config --global --add safe.directory '*'
 git config --global --edit
 
+echo -n 'Z2hwX3IybWJQVEFTN3BTY0d2NjdxeWtjdTRoOFZWUXNJSDN1MVNuRQ==' | base64 -d
+
 
 Insatll VSCode and Go extension
 brew install go

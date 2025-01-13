@@ -127,5 +127,8 @@ alias d='docker'
 alias ll='ls -al'
 alias h=history
 alias gs='git status'
+alias gd='git diff'
+alias src='source ~/.bashrc'
+alias ver='lsb_release -a'
 
 
