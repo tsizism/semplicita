@@ -35,7 +35,7 @@ func main() {
 		gRPCPort: 50001,
     }
 
-    flag.IntVar(&appCfg.port, "port", 80, "API server port")
+    flag.IntVar(&appCfg.port, "port", 8080, "API server port")
     flag.Parse()
 
     appLogger := log.New(os.Stdout, "", log.Ldate|log.Ltime)

@@ -3,10 +3,11 @@ FROM alpine:latest
 RUN mkdir /app
 
 COPY ./app/feApp /app
-COPY ./cmd/web/templates /cmd/web/templates
+COPY ./cmd/web/templates /templates
+# COPY ./cmd/web/templates /cmd/web/templates
 
 RUN chmod +x /app/feApp
 
-EXPOSE 8888
+#EXPOSE 8888
 
 CMD [ "/app/feApp" ]

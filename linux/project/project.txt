@@ -86,16 +86,19 @@ docker registry
 d login -u tsizism   // D-!
 
 # d build 
-d build --no-cache -f authentication-service/dockerfile -t tsizism/authentication-service:1.0 authentication-service
-d build --no-cache -f broker-service/dockerfile -t tsizism/broker-service:1.0 broker-service
-d build --no-cache -f listener-service/dockerfile -t tsizism/listener-service:1.0 listener-service
-d build --no-cache -f mail-service/dockerfile -t tsizism/mail-service:1.0 mail-service
-d build --no-cache -f trace-service/dockerfile -t tsizism/trace-service:1.0 trace-service
+# from /home/mark/github/semplicita/linux/project
+d build --no-cache -f ../authentication-service/dockerfile -t tsizism/authentication-service:1.0 ../authentication-service
+d build --no-cache -f ../broker-service/dockerfile -t tsizism/broker-service:1.0 ../broker-service
+d build --no-cache -f ../listener-service/dockerfile -t tsizism/listener-service:1.0 ../listener-service
+d build --no-cache -f ../mail-service/dockerfile -t tsizism/mail-service:1.0 ../mail-service
+d build --no-cache -f ../trace-service/dockerfile -t tsizism/trace-service:1.0 ../trace-service
 d build --no-cache -f ../fe/dockerfile -t tsizism/fe:1.0 ../fe
 
 So whenever you do docker build -t 'es:6.1' . you also need to run docker tag es:6.1 <username>/es:6.1
 
 d tag tsizism/fe:1.0 tsizism/fe:1.0
+
+# there is no command line option to remove image from the hub
 
 d push tsizism/authentication-service:1.0
 d push tsizism/broker-service:1.0
@@ -104,25 +107,39 @@ d push tsizism/mail-service:1.0
 d push tsizism/trace-service:1.0
 d push tsizism/fe:1.0
 
+d pull tsizism/authentication-service:1.0
+d pull tsizism/broker-service:1.0
+d pull tsizism/listener-service:1.0
+d pull tsizism/mail-service:1.0
+d pull tsizism/trace-service:1.0
+d pull tsizism/fe:1.0
+
+
+
 Swarm
 d service ls
 >Error response from daemon: This node is not a swarm manager. 
 >Use "docker swarm init" or "docker swarm join" to connect this node to swarm and try again.
 
 d swarm init
-    docker swarm join --token SWMTKN-1-4umg736a99i5nzy5veo6iz8wmxvz9le4damtd0vlj5abpl49hk-dgj6i2mjz1io96o82vk9nl8sx 192.168.65.3:2377
+    docker swarm join --token SWMTKN-1-2bg99crkwkthd1eno57fu90os3wwiwi4x17esdxrx3xlw1dn8l-1ex1uur6r2nya8552fds2ngjj 192.168.65.9:2377
+    To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.    
 
-d swarm join-token manager
-d swarm join-token worker
+d swarm join-token manager -- get join command with tocken for manager
+d swarm join-token worker  -- get join command with tocken for worker
 
 d stack deploy -c swarm.yaml semplicita_swarm
 
+docker service scale semplicita_swarm_listener-service=3
+
+d service update --image tsizism/fe:1.0 semplicita_swarm_fe
+
+docker service scale semplicita_swarm_listener-service=0  -- brings service down
+
 docker service rm semplicita_swarm_fe
 
-
-
-docker swarm leave -f 
-docker node rm 
+docker swarm leave -f -- for manager 
+docker node rm -- Remove one or more nodes from the swarm. This is a cluster management command, and must be executed on a swarm manager node. 
 
 
 https://caddyserver.com/

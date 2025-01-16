@@ -88,5 +88,5 @@ start: build_front
 ## stop: stop local front end
 stop:
 	@echo "Stopping local front end..."
-	@-pkill -SIGTERM -f "${FRONT_END_BINARY}"
+	@-pkill -SIGTERM -f ${FRONT_END_BINARY}
 	@echo "Stopped front end!"

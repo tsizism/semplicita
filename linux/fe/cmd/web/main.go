@@ -18,7 +18,8 @@ func currentTime() string {
 // $go build -v -a -o frontApp ./cmd/web
 // ./frontApp -port 8888
 func main() {
-	port2 := flag.Int("port", 80, "Web Port")
+	defaultPort := 8888
+	port2 := flag.Int("port", defaultPort, "Web Port")
 	flag.Parse()
 	port := *port2
 
@@ -35,15 +36,22 @@ func main() {
 	}
 }
 
-func render(w http.ResponseWriter, page string) {
+// this will be used to store the path to the rendered page to the read only file system
+//go:embed templates
+var templateFS embed.FS
+
+func render(w http.ResponseWriter, pageFileName string) {
+
+	templatesBase := "" // "./cmd/web/"
 
 	partials := []string{
-		"./cmd/web/templates/base.layout.gohtml",
-		"./cmd/web/templates/header.partial.gohtml",
-		"./cmd/web/templates/footer.partial.gohtml",
+		templatesBase + "templates/base.layout.gohtml",
+		templatesBase + "templates/header.partial.gohtml",
+		templatesBase + "templates/footer.partial.gohtml",
 	}
 
-	partials = append(partials, fmt.Sprintf("./cmd/web/templates/%s", page))
+	renderedPagePath =: fmt.Sprintf(templatesBase + "templates/%s", pageFileName)
+	partials = append(partials, renderedPagePath)
 
 	fmt.Printf("partials=%v\n", partials)
 
@@ -55,7 +63,7 @@ func render(w http.ResponseWriter, page string) {
 	// }
 	// fmt.Printf("templateSlice=%v\n", templateSlice)
 
-	tmpl := template.New(page)
+	tmpl := template.New(pageFileName)
 
 	tmpl.Funcs(template.FuncMap{
 		"currentTime": currentTime, // Register the custom time function
@@ -65,7 +73,9 @@ func render(w http.ResponseWriter, page string) {
 
 	var err error
 	// tmpl, err = tmpl.ParseFiles(templateSlice...)
-	tmpl, err = tmpl.ParseFiles(partials...)
+	// tmpl, err = tmpl.ParseFiles(partials...)
+
+	tmpl, err := tmpl.ParseFS(templateFS, partials...)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
