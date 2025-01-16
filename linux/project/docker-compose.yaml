@@ -11,7 +11,7 @@ services:
       dockerfile: ./../fe/dockerfile
     restart: always
     ports:
-      - "8888:80"
+      - "8888:8888"
     deploy:
       mode: replicated
       replicas: 1
@@ -22,7 +22,7 @@ services:
       dockerfile: ./../authentication-service/dockerfile
     restart: always
     ports:
-      - "8081:80"
+      - "8081:8081"
     deploy:
       mode: replicated
       replicas: 1
@@ -35,7 +35,7 @@ services:
       dockerfile: ./../broker-service/dockerfile
     restart: always
     ports:
-      - "8080:80"
+      - "8080:8080"
     deploy:
       mode: replicated
       replicas: 1

@@ -318,7 +318,7 @@ func (appCtx *applicationContext) authenticate(w http.ResponseWriter, a AuthPayl
 	// Connecting to authentication-service (172.18.0.2:80)
 	// wget: server returned error: HTTP/1.1 400 Bad Request
 
-	authServiceEndpoint := "http://authentication-service/authenticate"
+	authServiceEndpoint := "http://authentication-service:8081/authenticate"
 
 	jsonData, _ := json.MarshalIndent(a, "", "\t")
 

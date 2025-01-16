@@ -27,8 +27,9 @@ type applicationContext struct {
 }
 
 func main() {
+	defaultPort := 8081
 	var appCfg config
-	flag.IntVar(&appCfg.port, "port", 80, "Authentication service port")
+	flag.IntVar(&appCfg.port, "port", defaultPort, "Authentication service port")
 	flag.Parse()
 
 	appLogger := log.New(os.Stdout, "", log.Ldate|log.Ltime)

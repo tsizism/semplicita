@@ -27,7 +27,7 @@ type applicationContext struct {
 // 
 // go build -o <your desired name>
 //  curl http://localhost:4000
-//d  run -it -p 8081:80 brokerapp
+//d  run -it -p 8080:80 brokerapp
 //dc up -d  (-d detached)
 func main() {
     appCfg := config{
@@ -35,7 +35,8 @@ func main() {
 		gRPCPort: 50001,
     }
 
-    flag.IntVar(&appCfg.port, "port", 8080, "API server port")
+	defaultPort := 8080
+    flag.IntVar(&appCfg.port, "port", defaultPort, "API server port")
     flag.Parse()
 
     appLogger := log.New(os.Stdout, "", log.Ldate|log.Ltime)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
 	"html/template"
@@ -50,7 +51,7 @@ func render(w http.ResponseWriter, pageFileName string) {
 		templatesBase + "templates/footer.partial.gohtml",
 	}
 
-	renderedPagePath =: fmt.Sprintf(templatesBase + "templates/%s", pageFileName)
+	renderedPagePath := fmt.Sprintf(templatesBase + "templates/%s", pageFileName)
 	partials = append(partials, renderedPagePath)
 
 	fmt.Printf("partials=%v\n", partials)
@@ -75,7 +76,7 @@ func render(w http.ResponseWriter, pageFileName string) {
 	// tmpl, err = tmpl.ParseFiles(templateSlice...)
 	// tmpl, err = tmpl.ParseFiles(partials...)
 
-	tmpl, err := tmpl.ParseFS(templateFS, partials...)
+	tmpl, err = tmpl.ParseFS(templateFS, partials...)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
