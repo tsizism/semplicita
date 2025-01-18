@@ -85,7 +85,7 @@ docker registry
 
 d login -u tsizism   // D-!
 
-# d build 
+# make -f Makefile.linux.mak build
 # from /home/mark/github/semplicita/linux/project
 d build --no-cache -f ../authentication-service/dockerfile -t tsizism/authentication-service:1.0 ../authentication-service
 d build --no-cache -f ../broker-service/dockerfile -t tsizism/broker-service:1.0 ../broker-service
@@ -93,6 +93,11 @@ d build --no-cache -f ../listener-service/dockerfile -t tsizism/listener-service
 d build --no-cache -f ../mail-service/dockerfile -t tsizism/mail-service:1.0 ../mail-service
 d build --no-cache -f ../trace-service/dockerfile -t tsizism/trace-service:1.0 ../trace-service
 d build --no-cache -f ../fe/dockerfile -t tsizism/fe:1.0 ../fe
+
+!!!!!!!!!!!!!!!!!!!!!DONT FORGET TO BUILD EXEC!!!!!!!!!!!!!!
+!!!!!       make -f Makefile.linux.mak build         !!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 So whenever you do docker build -t 'es:6.1' . you also need to run docker tag es:6.1 <username>/es:6.1
 
@@ -114,13 +119,16 @@ d pull tsizism/mail-service:1.0
 d pull tsizism/trace-service:1.0
 d pull tsizism/fe:1.0
 
-
-
 Swarm
+https://docs.docker.com/engine/swarm/stack-deploy/
+
 d service ls
 >Error response from daemon: This node is not a swarm manager. 
 >Use "docker swarm init" or "docker swarm join" to connect this node to swarm and try again.
 
+1.
+docker stack rm semplicita_swarm
+2. 
 d swarm init
     docker swarm join --token SWMTKN-1-2bg99crkwkthd1eno57fu90os3wwiwi4x17esdxrx3xlw1dn8l-1ex1uur6r2nya8552fds2ngjj 192.168.65.9:2377
     To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.    
@@ -128,18 +136,33 @@ d swarm init
 d swarm join-token manager -- get join command with tocken for manager
 d swarm join-token worker  -- get join command with tocken for worker
 
+3.
 d stack deploy -c swarm.yaml semplicita_swarm
 
 docker service scale semplicita_swarm_listener-service=3
-
 d service update --image tsizism/fe:1.0 semplicita_swarm_fe
-
 docker service scale semplicita_swarm_listener-service=0  -- brings service down
-
 docker service rm semplicita_swarm_fe
 
 docker swarm leave -f -- for manager 
 docker node rm -- Remove one or more nodes from the swarm. This is a cluster management command, and must be executed on a swarm manager node. 
+# Bring Swarm down
+docker stack rm semplicita_swarm
 
 
 https://caddyserver.com/
+d build --no-cache -f caddy.dockerfile -t tsizism/mycaddy:1.0 .
+d push tsizism/mycaddy:1.0
+
+sudo vi /etc/hosts
+::1     ip6-localhost ip6-loopback backend
+# To allow the same kube context to work on the host and the container:
+127.0.0.1       kubernetes.docker.internal backend
+
+# for Windows --> https://www.thewindowsclub.com/hosts-file-in-windows
+
+
+sudo systemctl start apache2.service
+sudo systemctl stop apache2.service
+sudo systemctl restart apache2.service
+sudo systemctl status apache2.service

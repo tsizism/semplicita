@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"os"
 )
 
 func currentTime() string {
@@ -76,14 +77,20 @@ func render(w http.ResponseWriter, pageFileName string) {
 	// tmpl, err = tmpl.ParseFiles(templateSlice...)
 	// tmpl, err = tmpl.ParseFiles(partials...)
 
-	tmpl, err = tmpl.ParseFS(templateFS, partials...)
+	tmpl, err = tmpl.ParseFS(templateFS, partials...) // converts the partials to multple args
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := tmpl.Execute(w, nil); err != nil {
+	var brokerURLWarper struct{
+		BrokerURL string
+	}
+
+	brokerURLWarper.BrokerURL = os.Getenv("BROKER_URL")
+
+	if err := tmpl.Execute(w, brokerURLWarper); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

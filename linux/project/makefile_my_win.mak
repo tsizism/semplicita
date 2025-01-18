@@ -29,6 +29,9 @@ up: ## starts all containers in the background without forcing build
 	docker-compose -f ${DOCKER_COMPOSE_PATH} up -d
 	@echo Docker images started!
 
+build: build_broker build_auth build_mail build_listener build_trace build_fe
+	@echo "All Docker images built"
+
 up_build: build_broker build_auth build_trace build_mail build_listener build_fe ## stops docker-compose (if running), builds all projects and starts docker compose
 	@echo Stopping docker images (if running...)
 	docker-compose -f ${DOCKER_COMPOSE_PATH} down

@@ -49,6 +49,10 @@ services:
       mode: replicated
       replicas: 1
 
+##############################################################################
+# External services
+##############################################################################
+
   mailhog:
     image: 'mailhog/mailhog:latest'
     ports:
@@ -87,3 +91,22 @@ services:
     image: 'rabbitmq:alpine'
     deploy:
       mode: global
+
+# https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
+  caddy:
+    image: 'tsizism/mycaddy:1.0'
+    deploy:
+      mode: replicated
+      replicas: 1
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+    external: true
+  caddy_config:
+

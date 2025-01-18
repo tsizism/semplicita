@@ -13,7 +13,23 @@ up:
 	docker compose up -d
 	@echo "Docker images started!"
 
-## up_build: stops docker-compose (if running), builds all projects and starts docker compose  , -d, --detach
+## makes go execs
+build: build_broker build_auth build_mail build_listener build_trace build_fe
+	@echo "All Docker images built"
+
+## builds docker images
+image: 
+	@echo "Building all Docker images"
+	docker build --no-cache -f ../authentication-service/dockerfile -t tsizism/authentication-service:1.0 ../authentication-service
+	docker build --no-cache -f ../broker-service/dockerfile -t tsizism/broker-service:1.0 ../broker-service
+	docker build --no-cache -f ../listener-service/dockerfile -t tsizism/listener-service:1.0 ../listener-service
+	docker build --no-cache -f ../mail-service/dockerfile -t tsizism/mail-service:1.0 ../mail-service
+	docker build --no-cache -f ../trace-service/dockerfile -t tsizism/trace-service:1.0 ../trace-service
+	docker build --no-cache -f ../fe/dockerfile -t tsizism/fe:1.0 ../fe
+	@echo "Docker images built"
+
+
+## up_build: stops docker-compose (if running), makes all projects and starts docker compose  , -d, --detach
 up_build: build_broker build_auth build_mail build_listener build_trace build_fe
 	@echo "Stopping docker images (if running...)"
 	docker compose down
