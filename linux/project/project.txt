@@ -14,13 +14,12 @@ sudo dpkg -i
 sudo apt update
 
 
-
 Insatll VSCode and Go extension
 brew install go
 brew install make
 Install docker desktop and vscode extension 
 
-jinliming2 - Go Template Support extension 
+Install jinliming2 - Go Template Support extension 
 
 go mod init github.com/tsizism/semplicita/linux/broker
 

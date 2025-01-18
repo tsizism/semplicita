@@ -7,6 +7,8 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      BROKER_URL: "http://backend"
 
   authentication-service:
     image: tsizism/authentication-service:1.0 
