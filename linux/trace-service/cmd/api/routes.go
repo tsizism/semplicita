@@ -23,8 +23,8 @@ func (appCtx *applicationContext) routes() http.Handler {
 	*/
 
 	c := cors.New(cors.Options{
-	 	//AllowedOrigins: []string{"https://*", "http://*"},   
-		 AllowedOrigins: []string{"http://localhost", "http://localhost:80", "http://localhost:8888"},   // we allow to call "http://localhost:8080/handle" from http://localhost , (in adition to http://localhost:8080 - which would be the same origin as http://localhost/handle)
+	 	AllowedOrigins: []string{"https://*", "http://*"},   
+		// AllowedOrigins: []string{"http://localhost", "http://localhost:80", "http://localhost:8888"},   // we allow to call "http://localhost:8080/handle" from http://localhost , (in adition to http://localhost:8080 - which would be the same origin as http://localhost/handle)
 	})
 
 	handler = c.Handler(handler)

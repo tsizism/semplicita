@@ -15,7 +15,7 @@ up:
 
 ## makes go execs
 build: build_broker build_auth build_mail build_listener build_trace build_fe
-	@echo "All Docker images built"
+	@echo "All services built"
 
 ## builds docker images
 image: 

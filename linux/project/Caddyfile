@@ -28,6 +28,14 @@ localhost:80 {
 	reverse_proxy  http://fe:8888
 }
 
+192.168.2.200:80 {
+	encode zstd gzip
+	import static
+
+	reverse_proxy  http://fe:8888
+}
+
+
 backend:80 {
 	reverse_proxy http://broker-service:8080
 }
