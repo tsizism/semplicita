@@ -1,0 +1,18 @@
+https://caddyserver.com/
+
+There are no ports exposed here in the front-end section. In fact, the only exposed ports are for mail, hog and Mongo and Postgres, and that's not going to help us hit our web application. 
+
+That's a simple web server, a web server that will take requests and forward them to the appropriate microservice. 
+
+In other words, a reverse proxy. There's lots of web servers to choose from. We could go with Apache or Engine X, and if you're comfortable with those, you may want to use that. 
+
+But I'm going to use this one. Let me switch to my web browser. I'm going to use Caddy, it is a really good web server. It's written in GO. 
+
+And one of the nice things about it is it handles installation and deployment of SSL certificates automatically. We don't have to do anything if we have an appropriate domain name. 
+
+We've registered a domain name, and we have the appropriate entry in the name servers. 
+
+It just magically puts all the SSL certificates in place for us and it uses let's encrypt, which is extremely popular and doesn't cost anything. 
+
+
+"Most people use Caddy as a web server or proxy, but at its core, Caddy is a server of servers. With the requisite modules, it can take on the role of any long-running process!"
