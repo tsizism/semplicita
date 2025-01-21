@@ -1,0 +1,45 @@
+Website: web hosting canada https://whc.ca (login with google acc) 
+
+lln3nc.ca is now registered!
+Congratulations! Your domain lln3nc.ca has been successfully registered.
+
+Here are the details of your registration:
+
+Domain: lln3nc.ca
+Registration length: 2 Years
+Registration cost: $15.74
+Renewal date: 2027-01-19
+
+Manage your new domain
+
+Please allow a few hours for the domain to propagate across the Internet.
+
+Note: If you have also ordered additional services with your domain name, you will find their information in a separate email.
+
+We will attempt to renew your domain name automatically on your behalf 5 days prior to its next expiration date. You can modify your domain's auto-renew preferences at all times from your Client Area.
+
+Thanks again for your order, and don't hesitate to get in touch with us if you have any questions or concerns!
+
+
+It’s official – as of 2025/01/19, the .CA domain lln3nc.ca is fully registered and active in the .CA Registry!
+Your registrar: WHC Online Solutions Inc.
+Phone: +1.5145042113
+Email: info@whc.ca
+Website: https://whc.ca
+
+A couple more things before we let you go:
+
+By registering lln3nc.ca, you have agreed to the Canadian Internet Registration Authority’s (CIRA) Registrant Agreement.
+The current expiry date for your domain is 2027/01/19. Mark this date in your calendar now so you don't forget to regsnew your domain!
+Help us make the .CA domain better for all Canadians! Take this short survey to tell us about your registration experience and what you plan on using your domain for.
+Take your involvement in Canada’s internet to the next level and join thousands of other .CA holders, by signing up to be a CIRA Member.
+Please review our privacy policy and visit the CIRA WHOIS page to learn about what information is shared.
+
+
+C:\Users\tsizi>ping lln3nc.ca
+Pinging lln3nc.ca [149.56.225.6] with 32 bytes of data:
+Reply from 149.56.225.6: bytes=32 time=6ms TTL=50
+
+C:\Users\tsizi>ping swarm.lln3nc.ca
+Pinging swarm.lln3nc.ca [172.105.6.250] with 32 bytes of data:
+Reply from 172.105.6.250: bytes=32 time=9ms TTL=51

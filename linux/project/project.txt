@@ -24,6 +24,15 @@ brew install go
 brew install make
 Install docker desktop and vscode extension 
 
+6 things you can do with GitHub Copilot — for free (Sponsor)
+1️⃣ Edit and add multiple files at once with Copilot Edits (HUGE timesaver).
+2️⃣ Chat with and about your code using GPT or Claude.
+3️⃣ Use inline code completions to generate snippets or boilerplate.
+4️⃣ Debug your code, ask Copilot why it isn't working, and work together to root-cause the issue.
+5️⃣ Generate technical documentation for sections of code or entire repositories.
+6️⃣ Generate tests for your utilities, run them, and fix any failing ones in a snap.
+
+
 Install jinliming2 - Go Template Support extension 
 
 go mod init github.com/tsizism/semplicita/linux/broker
@@ -153,15 +162,14 @@ docker node rm -- Remove one or more nodes from the swarm. This is a cluster man
 # Bring Swarm down
 docker stack rm semplicita_swarm
 
-Swarm Ports
-Port 2377 TCP for communication with and between manager nodes
-Port 7946 TCP/UDP for overlay network node discovery
-Port 4789 UDP (configurable) for overlay network traffic
 
 
 https://caddyserver.com/
 d build --no-cache -f caddy.dockerfile -t tsizism/mycaddy:1.0 .
 d push tsizism/mycaddy:1.0
+
+d build --no-cache -f caddy.prd.dockerfile -t tsizism/mycaddy-prd:1.0 .
+d push tsizism/mycaddy-prd:1.0
 
 sudo vi /etc/hosts
 ::1     ip6-localhost ip6-loopback backend
@@ -176,3 +184,8 @@ sudo systemctl stop apache2.service
 sudo systemctl restart apache2.service
 sudo systemctl status apache2.service
 
+docker logs -f --tail 10 container_name
+d logs -f --tail 10 2c
+
+
+mode: global - keep an instanance on every noie of the swarm

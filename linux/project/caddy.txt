@@ -14,5 +14,4 @@ We've registered a domain name, and we have the appropriate entry in the name se
 
 It just magically puts all the SSL certificates in place for us and it uses let's encrypt, which is extremely popular and doesn't cost anything. 
 
-
 "Most people use Caddy as a web server or proxy, but at its core, Caddy is a server of servers. With the requisite modules, it can take on the role of any long-running process!"
