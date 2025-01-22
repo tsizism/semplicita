@@ -21,14 +21,22 @@
 	}
 }
 
-swarm.lln3nc.ca:80 {
+swarm.lln3nc.ca:8025 {
 	encode zstd gzip
 	import static
+
+    reverse_proxy  http://localhost:8025
+}
+
+swarm.lln3nc.ca {
+	encode zstd gzip
+	import static
+    import security
 
 	reverse_proxy  http://fe:8888
 }
 
 
-broker.lln3nc.ca:80 {
+broker.lln3nc.ca {
 	reverse_proxy http://broker-service:8080
 }

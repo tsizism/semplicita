@@ -163,13 +163,15 @@ docker node rm -- Remove one or more nodes from the swarm. This is a cluster man
 docker stack rm semplicita_swarm
 
 
-
+Caddy
+_____
 https://caddyserver.com/
 d build --no-cache -f caddy.dockerfile -t tsizism/mycaddy:1.0 .
 d push tsizism/mycaddy:1.0
 
 d build --no-cache -f caddy.prd.dockerfile -t tsizism/mycaddy-prd:1.0 .
 d push tsizism/mycaddy-prd:1.0
+d pull tsizism/mycaddy-prd:1.0
 
 sudo vi /etc/hosts
 ::1     ip6-localhost ip6-loopback backend
@@ -187,5 +189,6 @@ sudo systemctl status apache2.service
 docker logs -f --tail 10 container_name
 d logs -f --tail 10 2c
 
-
 mode: global - keep an instanance on every noie of the swarm
+
+

@@ -3,12 +3,12 @@ version : '3'
 #name: semplicita_swarm
 services:
   fe:
-    image: tsizism/fe:1.0
+s    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
     environment:
-      BROKER_URL: "http://broker.lln3nc.ca"
+      BROKER_URL: "https://broker.lln3nc.ca"
 
   authentication-service:
     image: tsizism/authentication-service:1.0
