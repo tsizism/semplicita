@@ -189,6 +189,8 @@ sudo systemctl status apache2.service
 docker logs -f --tail 10 container_name
 d logs -f --tail 10 2c
 
-mode: global - keep an instanance on every noie of the swarm
+mode: global - keep an instanance on every node of the swarm
 
-
+Shared volumes
+https://www.gluster.org/
+https://phoenixnap.com/kb/sshfs

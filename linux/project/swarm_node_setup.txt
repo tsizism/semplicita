@@ -1,34 +1,67 @@
-Digital ocean is very popular and you know, they work very well.
-And another popular one is Vultr, which is also relatively cost effective.
+Setup vi color
+echo 'syntax off' > .vimrc
 
-DigitalOceane has a really good tutorial on hardening and Ubuntu 20.04 server.
-I have a course on Udemy about securing VPNs and it happens to use Ubuntu 20.04 as the version.
+alias h='history'
+alias la='ls -ltr'
+alias lt='ls -trl'
+alias l.='ls -lad .*'
+alias lz='ls -lSr .*'
+alias gs='git status'
+alias gd='git diff'
+alias src='source ~/.bashrc'
+alias d='docker'
 
-Domain: http://lln3nc.ca
-VMs: https://cloud.linode.com/linodes 172.105.6.250
+Prompt Color:
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+	                                        									______
 
-Linode
-Currently in list view
-node-1	Running Nanode 1 GB	172.105.6.250 CA, Toronto
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;97m\]\w\[\033[00m\]\$ '
 
-ssh root@172.105.6.250
-ssh -t tsizism@lish-ca-central.linode.com node-1
-ssh -t mark@lish-ca-central.linode.com node-1
-ssh mark@172.105.6.250
-hostname
+Black-0;30 Red-0;31 Green-0;32 Brown-0;33 Blue-0;34 Magenta-0;35 Cyan-0;36 White-0;37
+Replace 0 with 1 to get a light colored version.
+
+Setup ssh
+ssh-keygen -t rsa
+Copy client pub key to node's authorized_keys
+
+Optional:
 sudo hostnamectl set-hostname node-1
-
 adduser mark
+
+Access:
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
+
+Install Docker:
+https://docs.docker.com/engine/install/ubuntu/
+sudo apt-get update
+sudo apt-get install ./docker-desktop-amd64.deb
+gpg --generate-key
+pass init <your_generated_gpg-id_public_key>
+
+Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
+sudo apt-get install bash-completion -y
+sudo curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+
+pgAdmin4   https://www.pgadmin.org/   sudo apt install pgadmin4-desktop
++Postrgess: /Users/Shared/semplicita/linux/project/docker-compose.yaml(postrgess/password), pgAdmin --> Server : authserver --> Database: users --> 
+Query Tool --> select * from users
+
++https://www.mongodb.com/docs/compass/current/install/#std-label-download-install
++sudo apt install ./mongodb-compass_1.45.0_amd64.deb
+
+Docker cleanup
+d stack rm my app 
+docker rm -vf $(docker ps -aq)
+docker rmi -f $(docker images -aq)
+
+Firewall:
 
 Swarm Ports
 Port 2377 TCP for communication with and between manager nodes
 Port 7946 TCP/UDP for overlay network node discovery
 Port 4789 UDP (configurable) for overlay network traffic
 
-
-Firewall:
 sudo ufw allow ssh
 sudo ufw allow http
 sudo ufw allow https
@@ -60,17 +93,6 @@ To                         Action      From
 4789/udp (v6)              ALLOW       Anywhere (v6)
 8025/tcp (v6)              ALLOW       Anywhere (v6)
 
-
-
-Install Docker:
-https://docs.docker.com/engine/install/ubuntu/
-
-
-Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
-sudo apt-get install bash-completion -y
-sudo curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
-
-
 cd /
 sudo mkdir swarm
 sudo chown -R  mark:mark swarm/
@@ -79,8 +101,6 @@ mkdir caddy_data caddy_config
 
 mkdir -p db-data/mongo
 mkdir -p db-data/postgres
-
-
 
 mark@node-1:/swarm$ sudo docker swarm init --advertise-addr 172.105.6.250
 Swarm initialized: current node (wf6fyqkvjk0guqbljqv4u476a) is now a manager.
@@ -91,6 +111,36 @@ To add a manager to this swarm, run 'docker swarm join-token manager' and follow
 
 sudo docker stack deploy -c swarm.prd.yaml myapp
 
+_______________________________________________________________________________________
+
+
+Digital ocean is very popular and you know, they work very well.
+And another popular one is Vultr, which is also relatively cost effective.
+
+DigitalOceane has a really good tutorial on hardening and Ubuntu 20.04 server.
+I have a course on Udemy about securing VPNs and it happens to use Ubuntu 20.04 as the version.
+
+Domain: http://lln3nc.ca
+VMs: https://cloud.linode.com/linodes 172.105.6.250
+
+Linode
+Currently in list view
+node-1	Running Nanode 1 GB	172.105.6.250 CA, Toronto
+
+ssh root@172.105.6.250
+ssh -t tsizism@lish-ca-central.linode.com node-1
+ssh -t mark@lish-ca-central.linode.com node-1
+ssh mark@172.105.6.250
+hostname
+sudo hostnamectl set-hostname node-1
+
+adduser mark
+sudo usermod -aG sudo mark   -- mark has sudo privilages 
+sudo usermod -aG docker mark
+
+
 
 MailHog: http://swarm.lln3nc.ca:8025/
 Mongo:   MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:password@node-1.lln3nc.ca:27017/" --> Database:  trace --> Collection trace
+
+
