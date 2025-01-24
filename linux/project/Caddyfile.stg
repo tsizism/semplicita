@@ -1,0 +1,41 @@
+{
+    email   tsizism@gmail.com
+}
+
+(static) {
+	@static {
+		file
+		path *.ico *.css *.js *.gif *.jpg *.jpeg *.png *.svg *.woff *.json
+	}
+	header @static Cache-Control max-age=5184000
+}
+
+(security) {
+	header {
+		# enable HSTS
+		Strict-Transport-Security max-age=31536000;
+		# disable clients from sniffing the media type
+		X-Content-Type-Options nosniff
+		# keep referrer data off of HTTP connections
+		Referrer-Policy no-referrer-when-downgrade
+	}
+}
+
+192.168.2.200:8025 {
+	encode zstd gzip
+	import static
+
+    reverse_proxy  http://localhost:8025
+}
+
+192.168.2.200:80 {
+	encode zstd gzip
+	import static
+
+	reverse_proxy  http://fe:8888
+}
+
+
+broker:80 {
+	reverse_proxy http://broker-service:8080
+}

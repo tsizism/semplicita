@@ -1,3 +1,9 @@
+latitude=192.168.2.200
+aceri3=203
+aceri5=192.168.2.202 - mgr aceri5.lln3nc.ca
+asus
+amd
+
 netstat -ntulp | grep dockerd
 
 Setup vi color
@@ -138,9 +144,16 @@ I have a course on Udemy about securing VPNs and it happens to use Ubuntu 20.04 
 Domain: http://lln3nc.ca
 VMs: https://cloud.linode.com/linodes 172.105.6.250
 
+DNS:
+Node1 A 172.105.6.250
+swarm A 172.105.6.250
+broker CNAME swarm.lln3nc.ca.
+
+
 Linode
 Currently in list view
-node-1	Running Nanode 1 GB	172.105.6.250 CA, Toronto
+node1	Running Nanode 1 GB	172.105.6.250 CA, Toronto
+
 
 ssh root@172.105.6.250
 ssh -t tsizism@lish-ca-central.linode.com node-1

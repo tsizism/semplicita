@@ -12,7 +12,7 @@ services:
           - node.role == worker 
 
     environment:
-      BROKER_URL: "https://broker.lln3nc.ca"
+      BROKER_URL: "http://broker"
 
 
   authentication-service:
@@ -135,7 +135,7 @@ services:
 
 # https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
   caddy:
-    image: 'tsizism/mycaddy-prd:1.0'
+    image: 'tsizism/mycaddy-stg:1.0'
     deploy:
       mode: replicated
       replicas: 1
