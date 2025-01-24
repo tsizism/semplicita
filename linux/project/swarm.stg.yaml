@@ -3,18 +3,26 @@ version : '3'
 #name: semplicita_swarm
 services:
   fe:
-s    image: tsizism/fe:1.0
+    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
+
     environment:
       BROKER_URL: "https://broker.lln3nc.ca"
+
 
   authentication-service:
     image: tsizism/authentication-service:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
 
@@ -23,18 +31,29 @@ s    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
+
 
   listener-service:
     image: tsizism/listener-service:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
+
 
   mail-service:
     image: tsizism/mail-service:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
     environment:
       MAIL_PORT:  1025
       MAIL_DOMAIN: localhost
@@ -50,6 +69,9 @@ s    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
 
 ##############################################################################
 # External services
@@ -62,6 +84,10 @@ s    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
+     
 
   mongodb:
     image: 'mongo:6.0-rc-jammy'
@@ -72,7 +98,7 @@ s    image: tsizism/fe:1.0
       replicas: 1
       placement:
         constraints:
-          - node.hostname == latitude
+          - node.role == worker 
     environment:
       MONGO_INITDB_DATABASE: trace
       MONGO_INITDB_ROOT_USERNAME: admin
@@ -89,7 +115,8 @@ s    image: tsizism/fe:1.0
       replicas: 1
       placement:
         constraints:
-          - node.hostname == latitude
+          - node.role == worker 
+
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -102,6 +129,9 @@ s    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - node.role == worker 
 
 # https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
   caddy:
@@ -111,7 +141,7 @@ s    image: tsizism/fe:1.0
       replicas: 1
       placement:
         constraints:
-          - node.hostname == node-1
+          - node.role == worker 
     ports:
       - "80:80"
       - "443:443"

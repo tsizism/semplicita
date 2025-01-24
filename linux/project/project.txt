@@ -180,7 +180,6 @@ sudo vi /etc/hosts
 
 # for Windows --> https://www.thewindowsclub.com/hosts-file-in-windows
 
-
 sudo systemctl start apache2.service
 sudo systemctl stop apache2.service
 sudo systemctl restart apache2.service

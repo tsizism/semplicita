@@ -1,3 +1,5 @@
+netstat -ntulp | grep dockerd
+
 Setup vi color
 echo 'syntax off' > .vimrc
 
@@ -32,12 +34,17 @@ Access:
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
 
+sudo systemctl status docker.service
+
 Install Docker:
 https://docs.docker.com/engine/install/ubuntu/
 sudo apt-get update
 sudo apt-get install ./docker-desktop-amd64.deb
 gpg --generate-key
 pass init <your_generated_gpg-id_public_key>
+
+d completion bash > ~/.config/bash/completions/docker.bash
+
 
 Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
 sudo apt-get install bash-completion -y
@@ -97,17 +104,25 @@ cd /
 sudo mkdir swarm
 sudo chown -R  mark:mark swarm/
 cd swarm/
-mkdir caddy_data caddy_config
+mkdir -p caddy_data caddy_config db-data/mongo db-data/postgres
 
-mkdir -p db-data/mongo
-mkdir -p db-data/postgres
-
-mark@node-1:/swarm$ sudo docker swarm init --advertise-addr 172.105.6.250
-Swarm initialized: current node (wf6fyqkvjk0guqbljqv4u476a) is now a manager.
+mark@aceri5:~$ docker swarm init  --advertise-addr 192.168.2.202
+Swarm initialized: current node (9x9h6ajs887n3nujooli3734i) is now a manager.
 To add a worker to this swarm, run the following command:
-    docker swarm join --token SWMTKN-1-6acl8qtarp5jbd4patch7trprhbpzj7x8ve69pdbj7i6dxyoot-8iqj8s6nihqcmeblfd0j6684e 172.105.6.250:2377
-
+    docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.202:2377
 To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address|Managers)'.*
+
+mark@latitude:~$  docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.202:2377
+This node joined a swarm as a worker.
+
+Worker:
+docker context ls
+docker context use default
+d swarm leave -f
+
+docker node ls
 
 sudo docker stack deploy -c swarm.prd.yaml myapp
 
@@ -138,9 +153,11 @@ adduser mark
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
 
+id mark
 
 
 MailHog: http://swarm.lln3nc.ca:8025/
 Mongo:   MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:password@node-1.lln3nc.ca:27017/" --> Database:  trace --> Collection trace
 
-
+d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address)'.*
+__toggle_docker_context_promp
