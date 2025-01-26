@@ -196,6 +196,8 @@ sudo systemctl status apache2.service
 docker logs -f --tail 10 container_name
 d logs -f --tail 10 2c
 
+docker logs da 2>&1   | grep 8080
+
 mode: global - keep an instanance on every node of the swarm
 
 Shared volumes

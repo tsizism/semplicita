@@ -1,4 +1,4 @@
-latitude=192.168.2.200
+latitude=192.168.2.200 - wrk
 aceri3=203
 aceri5=192.168.2.202 - mgr aceri5.lln3nc.ca
 asus
@@ -174,3 +174,5 @@ Mongo:   MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:p
 
 d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address)'.*
 __toggle_docker_context_promp
+
+docker logs da 2>&1   | grep 8080

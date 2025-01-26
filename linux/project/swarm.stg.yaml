@@ -12,7 +12,7 @@ services:
           - node.role == worker 
 
     environment:
-      BROKER_URL: "http://broker"
+      BROKER_URL: "http://latitude.home"
 
 
   authentication-service:

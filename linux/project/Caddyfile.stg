@@ -35,7 +35,6 @@
 	reverse_proxy  http://fe:8888
 }
 
-
-broker:80 {
+latitude.home {
 	reverse_proxy http://broker-service:8080
 }
