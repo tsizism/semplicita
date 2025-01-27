@@ -35,6 +35,7 @@
 	reverse_proxy  http://fe:8888
 }
 
-latitude.home {
+# defined in /etc/hosts
+backend:80 {
 	reverse_proxy http://broker-service:8080
 }

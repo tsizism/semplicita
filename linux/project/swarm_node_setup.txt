@@ -1,8 +1,8 @@
 latitude=192.168.2.200 - wrk
-aceri3=203
-aceri5=192.168.2.202 - mgr aceri5.lln3nc.ca
-asus
-amd
+amd=201 - wkr
+asus=202 -  wkr
+aceri3=203 - mgr
+aceri5=192.168.2.205 - mgr aceri5.lln3nc.ca
 
 netstat -ntulp | grep dockerd
 
@@ -62,6 +62,10 @@ Query Tool --> select * from users
 
 +https://www.mongodb.com/docs/compass/current/install/#std-label-download-install
 +sudo apt install ./mongodb-compass_1.45.0_amd64.deb
+Mongo:   MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:password@node-1.lln3nc.ca:27017/" --> Database:  trace --> Collection trace
+
+mongodb://admin:password@latitude:27017/
+
 
 Docker cleanup
 d stack rm my app 
@@ -144,11 +148,10 @@ I have a course on Udemy about securing VPNs and it happens to use Ubuntu 20.04 
 Domain: http://lln3nc.ca
 VMs: https://cloud.linode.com/linodes 172.105.6.250
 
-DNS:
+DNS from: https://whc.ca
 Node1 A 172.105.6.250
 swarm A 172.105.6.250
 broker CNAME swarm.lln3nc.ca.
-
 
 Linode
 Currently in list view
@@ -170,7 +173,6 @@ id mark
 
 
 MailHog: http://swarm.lln3nc.ca:8025/
-Mongo:   MongoDB Compass --> Connect using 'trace' connection "mongodb://admin:password@node-1.lln3nc.ca:27017/" --> Database:  trace --> Collection trace
 
 d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address)'.*
 __toggle_docker_context_promp

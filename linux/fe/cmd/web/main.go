@@ -90,6 +90,8 @@ func render(w http.ResponseWriter, pageFileName string) {
 
 	brokerURLWarper.BrokerURL = os.Getenv("BROKER_URL")
 
+	fmt.Printf("BROKER_URL:=%s\n", brokerURLWarper.BrokerURL)
+
 	if err := tmpl.Execute(w, brokerURLWarper); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

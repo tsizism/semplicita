@@ -10,9 +10,8 @@ services:
       placement:
         constraints:
           - node.role == worker 
-
     environment:
-      BROKER_URL: "http://latitude.home"
+      BROKER_URL: "http://backend"
 
 
   authentication-service:

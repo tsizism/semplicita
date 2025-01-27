@@ -35,7 +35,7 @@ localhost:80 {
 	reverse_proxy  http://fe:8888
 }
 
-
+# defined in /etc/hosts
 backend:80 {
 	reverse_proxy http://broker-service:8080
 }

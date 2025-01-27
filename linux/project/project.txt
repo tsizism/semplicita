@@ -179,19 +179,27 @@ d build --no-cache -f caddy.stg.dockerfile -t tsizism/mycaddy-stg:1.0 .
 d push tsizism/mycaddy-stg:1.0
 d pull tsizism/mycaddy-stg:1.0
 
+mark@latitude:~$ sudo vi /etc/hosts
+127.0.0.1 localhost broker
+::1     ip6-localhost ip6-loopback broker
 
-sudo vi /etc/hosts
-::1     ip6-localhost ip6-loopback backend
-# To allow the same kube context to work on the host and the container:
-127.0.0.1       kubernetes.docker.internal backend
+Web Browser
+"C:\Windows\System32\drivers\etc\hosts"
+192.168.2.200       backend
+192.168.2.203       backend
+
+
+netstat -ln | grep 8080
+sudo netstat -tulpn | grep 8080
+curl -v http://localhost:8080/
+
 
 # for Windows --> https://www.thewindowsclub.com/hosts-file-in-windows
 
-
+sudo systemctl status apache2.service
 sudo systemctl start apache2.service
 sudo systemctl stop apache2.service
 sudo systemctl restart apache2.service
-sudo systemctl status apache2.service
 
 docker logs -f --tail 10 container_name
 d logs -f --tail 10 2c
