@@ -3,7 +3,7 @@ version : '3'
 #name: semplicita_swarm
 services:
   fe:
-s    image: tsizism/fe:1.0
+    image: tsizism/fe:1.0
     deploy:
       mode: replicated
       replicas: 1
@@ -104,6 +104,7 @@ s    image: tsizism/fe:1.0
       replicas: 1
 
 # https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
+# caddy_data & caddy_config used for certs
   caddy:
     image: 'tsizism/mycaddy-prd:1.0'
     deploy:
@@ -118,7 +119,6 @@ s    image: tsizism/fe:1.0
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-
 volumes:
   caddy_data:
     external: true

@@ -180,14 +180,14 @@ d push tsizism/mycaddy-stg:1.0
 d pull tsizism/mycaddy-stg:1.0
 
 mark@latitude:~$ sudo vi /etc/hosts
-127.0.0.1 localhost broker
-::1     ip6-localhost ip6-loopback broker
+127.0.0.1 localhost backend
 
-Web Browser
+Web Browser Host
 "C:\Windows\System32\drivers\etc\hosts"
+# Swarm workers
 192.168.2.200       backend
-192.168.2.203       backend
-
+192.168.2.201       backend
+192.168.2.202       backend
 
 netstat -ln | grep 8080
 sudo netstat -tulpn | grep 8080
@@ -211,3 +211,9 @@ mode: global - keep an instanance on every node of the swarm
 Shared volumes
 https://www.gluster.org/
 https://phoenixnap.com/kb/sshfs
+
+
+
+d ps -a -q  - all & container id only 
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)

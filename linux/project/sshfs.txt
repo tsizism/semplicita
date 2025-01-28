@@ -1,0 +1,61 @@
+Shared volumes
+We're doing the same thing we're doing in Caddy with Postgres. Keeping it on a particular note, right here in the Caddy Microservice. 
+Under the deploy section we have placement constraints Node hostname must be equal to node one and that ensures that Caddy are always going to be deployed even if we have multiple instances - it will always be on Node one.
+And the reason, of course, is the volumes. We have two folders that Caddy expects to find to use SSL certificates. And that works well. But it would be nice if I could have that information, 
+the data that's in those two directories available on every volume. And if I could do that, then I'd be able to deploy my Caddy micro service as many times as I want on any node that I wanted.
+Gluster FS is a scalable network file system. It allows us to install Gluster on your master node and on all your worker nodes and share a particular volume or disk directory from one node to the others. 
+Any time a file goes into the directory on one node, it actually gets automatically copied to all nodes and it's pretty easy to install. 
+https://www.gluster.org/
+An alternative approach would be to use this service SSHFS. This is a ssh file system.  You can mount remote file systems over Ssh. 
+In my experience, SSHFS is a little bit slower than Gluster. So, it's actually not that much different. And I think SShfs is actually easier to install.
+https://phoenixnap.com/kb/sshfs
+
+sudo apt update
+sudo apt install sshfs
+
+sudo mkdir /mnt/[mount-point-directory]
+sudo mkdir /mnt/mnt_test
+
+sudo sshfs -o [options] [remote-user]@[remote-host]:/[path to remote directory] /mnt/[mount-point-directory]/
+sudo sshfs -o [options] [remote-user]@[remote-host]:/swarm /mnt/swarm
+
+#If the remote server uses password authentication, enter the password when requested. 
+#If it uses SSH key authorization, provide the path to the private key using the IdentityFile option. For example:
+sudo sshfs -o allow_other,default_permissions,IdentityFile=/home/kb/.ssh/id_rsa ubuntu@131.153.142.254:/home/ubuntu/ /mnt/test/
+
+sudo sshfs -o allow_other,default_permissions mark@131.153.142.254:/home/ubuntu/ /mnt/test/
+
+sshfs -h
+
+cd /mnt/[mount-point-directory]
+sudo umount /mnt/[mount-point-directory]
+
+_______________________________________________________________________________
+mark@aceri5:~/.ssh$ ssh-copy-id -i id_rsa_aceri5.pub mark@latitude
+
+server(aceri5):sudo mkdir /mnt/mnt_test
+server(aceri5):sudo chown -R  mark:mark /mnt/mnt_test
+client(latitude): mkdir /mnt_test
+client(latitude): sudo chown -R  mark:mark /mnt_test
+
+(server)mark@aceri5:/mnt$ sudo sshfs -o allow_other,default_permissions mark@latitude:/mnt_test /mnt/mnt_test/
+findmnt | grep sshfs
+(server)mark@aceri5:/mnt$ sudo umount /mnt/mnt_test/
+
+
+The above command mounts a remote directory at mark@latitude under the name /mnt_test to the /mnt/mnt_test/ mount point.
+
+
+(server)mark@aceri5:/mnt$ sudo sshfs -o allow_other,default_permissions mark@latitude://swarm /mnt/mnt_test/
+
+
+(server)mark@aceri5:/mnt$ 
+sudo sshfs -o allow_other,default_permissions mark@latitude:/swarm/caddy_data/ /swarm/caddy_data/
+sudo sshfs -o allow_other,default_permissions mark@latitude:/swarm/caddy_config/ /swarm/caddy_config/
+sudo sshfs -o allow_other,default_permissions mark@latitude:/swarm/db-data/ /swarm/db-data/
+mark@aceri5:/swarm$ findmnt | grep sshfs
+├─/swarm/caddy_data                               mark@latitude:/swarm/caddy_data/   fuse.sshfs  rw,nosuid,nodev,relatime,user_id=0,group_id=0,default_permissions,allow_other
+├─/swarm/caddy_config                             mark@latitude:/swarm/caddy_config/ fuse.sshfs  rw,nosuid,nodev,relatime,user_id=0,group_id=0,default_permissions,allow_other
+├─/swarm/db-data                                  mark@latitude:/swarm/db-data/      fuse.sshfs  rw,nosuid,nodev,relatime,user_id=0,group_id=0,default_permissions,allow_other
+
+sudo umount /swarm/db-data/

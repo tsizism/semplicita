@@ -31,6 +31,7 @@ Replace 0 with 1 to get a light colored version.
 Setup ssh
 ssh-keygen -t rsa
 Copy client pub key to node's authorized_keys
+ssh-copy-id -i id_rsa.pub mark@latitude
 
 Optional:
 sudo hostnamectl set-hostname node-1
@@ -51,7 +52,6 @@ pass init <your_generated_gpg-id_public_key>
 
 d completion bash > ~/.config/bash/completions/docker.bash
 
-
 Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
 sudo apt-get install bash-completion -y
 sudo curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
@@ -59,6 +59,8 @@ sudo curl https://raw.githubusercontent.com/docker/docker-ce/master/components/c
 pgAdmin4   https://www.pgadmin.org/   sudo apt install pgadmin4-desktop
 +Postrgess: /Users/Shared/semplicita/linux/project/docker-compose.yaml(postrgess/password), pgAdmin --> Server : authserver --> Database: users --> 
 Query Tool --> select * from users
+SSH Tunnel: db hostname,  hostname username & password
+
 
 +https://www.mongodb.com/docs/compass/current/install/#std-label-download-install
 +sudo apt install ./mongodb-compass_1.45.0_amd64.deb
@@ -111,7 +113,7 @@ To                         Action      From
 8025/tcp (v6)              ALLOW       Anywhere (v6)
 
 cd /
-sudo mkdir swarm
+sudo mkdir /swarm
 sudo chown -R  mark:mark swarm/
 cd swarm/
 mkdir -p caddy_data caddy_config db-data/mongo db-data/postgres
@@ -119,22 +121,38 @@ mkdir -p caddy_data caddy_config db-data/mongo db-data/postgres
 mark@aceri5:~$ docker swarm init  --advertise-addr 192.168.2.202
 Swarm initialized: current node (9x9h6ajs887n3nujooli3734i) is now a manager.
 To add a worker to this swarm, run the following command:
-    docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.202:2377
+    docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.205:2377
 To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 
 d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address|Managers)'.*
 
-mark@latitude:~$  docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.202:2377
+mark@latitude:~$  docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.205:2377
 This node joined a swarm as a worker.
 
 Worker:
 docker context ls
 docker context use default
 d swarm leave -f
-
 docker node ls
 
-sudo docker stack deploy -c swarm.prd.yaml myapp
+docker stack deploy -c swarm.prd.yaml myapp
+d service ls
+d node ps latitude
+
+mark@latitude:~$ sudo vi /etc/hosts
+127.0.0.1 localhost backend
+
+Web Browser Host
+"C:\Windows\System32\drivers\etc\hosts"
+# Swarm workers
+192.168.2.200       backend
+192.168.2.201       backend
+192.168.2.202       backend
+
+netstat -ln | grep 8080
+sudo netstat -tulpn | grep 8080
+curl -v http://localhost:8080/
+
 
 _______________________________________________________________________________________
 
@@ -157,7 +175,6 @@ Linode
 Currently in list view
 node1	Running Nanode 1 GB	172.105.6.250 CA, Toronto
 
-
 ssh root@172.105.6.250
 ssh -t tsizism@lish-ca-central.linode.com node-1
 ssh -t mark@lish-ca-central.linode.com node-1
@@ -169,8 +186,11 @@ adduser mark
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
 
-id mark
+Check user's usergroups: <id mark>
 
+d node ps
+d node ps latitude
+d service ps
 
 MailHog: http://swarm.lln3nc.ca:8025/
 
@@ -178,3 +198,8 @@ d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address)'.*
 __toggle_docker_context_promp
 
 docker logs da 2>&1   | grep 8080
+
+sudo systemctl status docker.service
+sudo systemctl restart docker.service
+
+
