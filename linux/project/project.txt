@@ -1,3 +1,9 @@
+latitude=192.168.2.200 - wrk
+amd=201 - wkr
+asus=202 -  wkr
+aceri3=203 - mgr
+aceri5=192.168.2.205 - mgr aceri5.lln3nc.ca
+
 skill -STOP -u mark
 
 Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
@@ -146,7 +152,7 @@ docker stack rm semplicita_swarm
 2. 
 d swarm init
     docker swarm join --token SWMTKN-1-2bg99crkwkthd1eno57fu90os3wwiwi4x17esdxrx3xlw1dn8l-1ex1uur6r2nya8552fds2ngjj 192.168.65.9:2377
-    To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.    
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.    
 
 d swarm join-token manager -- get join command with tocken for manager
 d swarm join-token worker  -- get join command with tocken for worker
@@ -217,3 +223,5 @@ https://phoenixnap.com/kb/sshfs
 d ps -a -q  - all & container id only 
 docker stop $(docker ps -a -q)
 docker rm $(docker ps -a -q)
+
+d image ls -q  - all & container id only 

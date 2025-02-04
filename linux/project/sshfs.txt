@@ -6,9 +6,12 @@ the data that's in those two directories available on every volume. And if I cou
 Gluster FS is a scalable network file system. It allows us to install Gluster on your master node and on all your worker nodes and share a particular volume or disk directory from one node to the others. 
 Any time a file goes into the directory on one node, it actually gets automatically copied to all nodes and it's pretty easy to install. 
 https://www.gluster.org/
+http://embaby.com/blog/using-glusterfs-docker-swarm-cluster/
 An alternative approach would be to use this service SSHFS. This is a ssh file system.  You can mount remote file systems over Ssh. 
 In my experience, SSHFS is a little bit slower than Gluster. So, it's actually not that much different. And I think SShfs is actually easier to install.
 https://phoenixnap.com/kb/sshfs
+
+Ceph
 
 sudo apt update
 sudo apt install sshfs
@@ -59,3 +62,4 @@ mark@aceri5:/swarm$ findmnt | grep sshfs
 ├─/swarm/db-data                                  mark@latitude:/swarm/db-data/      fuse.sshfs  rw,nosuid,nodev,relatime,user_id=0,group_id=0,default_permissions,allow_other
 
 sudo umount /swarm/db-data/
+

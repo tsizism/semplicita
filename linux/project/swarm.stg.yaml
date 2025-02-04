@@ -27,9 +27,10 @@ services:
 
   broker-service:
     image: tsizism/broker-service:1.0
+    hostname: "broker-service-replica-{{.Node.Hostname}}-{{.Task.Slot}}"    
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 2
       placement:
         constraints:
           - node.role == worker 
@@ -115,7 +116,6 @@ services:
       placement:
         constraints:
           - node.role == worker 
-
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password

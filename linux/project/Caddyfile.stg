@@ -1,5 +1,6 @@
 {
     email   tsizism@gmail.com
+    auto_https off  # Disable HTTPS since we're using port 80
 }
 
 (static) {
@@ -21,11 +22,26 @@
 	}
 }
 
-192.168.2.200:8025 {
-	encode zstd gzip
-	import static
 
-    reverse_proxy  http://localhost:8025
+#:80 {
+#    reverse_proxy {
+#        # Primary upstream server
+#        to http://primary-server:80
+#        
+#        # Failover to secondary server if primary is down
+#        fallback http://secondary-server:80
+#    }
+#}
+
+:80 {
+    reverse_proxy 192.168.2.200:80 192.168.2.201:80 192.168.2.202:80 {
+        lb_policy first
+        health_uri /
+        health_interval 10s
+        health_timeout 2s
+        fail_duration 30s
+        max_fails 1    
+    }
 }
 
 192.168.2.200:80 {
@@ -33,6 +49,42 @@
 	import static
 
 	reverse_proxy  http://fe:8888
+}
+
+192.168.2.201:80 {
+	encode zstd gzip
+	import static
+
+	reverse_proxy  http://fe:8888
+}
+
+192.168.2.202:80 {
+	encode zstd gzip
+	import static
+
+	reverse_proxy  http://fe:8888
+}
+
+192.168.2.200:8025 {
+	encode zstd gzip
+	import static
+
+    reverse_proxy  http://localhost:8025
+}
+
+
+192.168.2.201:8025 {
+	encode zstd gzip
+	import static
+
+    reverse_proxy  http://localhost:8025
+}
+
+192.168.2.202:8025 {
+	encode zstd gzip
+	import static
+
+    reverse_proxy  http://localhost:8025
 }
 
 # defined in /etc/hosts

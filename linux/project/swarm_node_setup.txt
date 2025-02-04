@@ -4,6 +4,18 @@ asus=202 -  wkr
 aceri3=203 - mgr
 aceri5=192.168.2.205 - mgr aceri5.lln3nc.ca
 
+mark@latitude:~$ sudo vi /etc/hosts
+127.0.0.1 localhost backend
+
+Web Browser Host
+"C:\Windows\System32\drivers\etc\hosts"
+# Swarm workers
+192.168.2.200       backend
+192.168.2.201       backend
+192.168.2.202       backend
+
+
+
 netstat -ntulp | grep dockerd
 
 Setup vi color
@@ -18,6 +30,11 @@ alias gs='git status'
 alias gd='git diff'
 alias src='source ~/.bashrc'
 alias d='docker'
+alias dcl='docker container ls'
+alias dlt='docker logs -f -t '
+
+ls command color:
+LS_COLORS=$LS_COLORS:'di=0;35:' ; export LS_COLORS
 
 Prompt Color:
 PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
@@ -41,16 +58,46 @@ Access:
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
 
+Check user's usergroups: <id mark>
+
+sudo systemctl status docker
 sudo systemctl status docker.service
 
 Install Docker:
 https://docs.docker.com/engine/install/ubuntu/
-sudo apt-get update
-sudo apt-get install ./docker-desktop-amd64.deb
-gpg --generate-key
-pass init <your_generated_gpg-id_public_key>
+....
+ 
+sudo usermod -aG docker mark
+docker run hello-world
 
+Optional:
 d completion bash > ~/.config/bash/completions/docker.bash
+
+d system info
+
+cd /
+sudo mkdir /swarm
+sudo chown -R  mark:mark /swarm
+cd swarm/
+mkdir -p /swarm/caddy_data /swarm/caddy_config /swarm/db-data/mongo /swarm/db-data/postgres
+
+On NFS Server:
+
+echo 2716017 | sudo -S umount /swarm/db-data/ -o password_stdin
+echo 2716017 | sudo -S umount /swarm/caddy_config/ -o password_stdin
+echo 2716017 | sudo -S umount /swarm/caddy_data/ -o password_stdin
+
+echo 2716017 | sudo -S sshfs -o allow_other,default_permissions mark@latitude:/swarm/caddy_data/ /swarm/caddy_data/ -o password_stdin
+echo 2716017 | sudo -S sshfs -o allow_other,default_permissions mark@latitude:/swarm/caddy_config/ /swarm/caddy_config/ -o password_stdin
+echo 2716017 | sudo -S sshfs -o allow_other,default_permissions mark@latitude:/swarm/db-data/ /swarm/db-data/ -o password_stdin
+
+echo 6132716017 | sudo -S sshfs -o allow_other,default_permissions mark@amd:/swarm/caddy_data/ /swarm/caddy_data/ -o password_stdin
+echo 6132716017 | sudo -S sshfs -o allow_other,default_permissions mark@amd:/swarm/caddy_config/ /swarm/caddy_config/  -o password_stdin
+echo 6132716017 | sudo -S sshfs -o allow_other,default_permissions mark@amd:/swarm/db-data/ /swarm/db-data/  -o password_stdin
+
+
+
+findmnt | grep sshfs
 
 Docker Shell autocomplition  https://www.techrepublic.com/article/enable-docker-command-completion/
 sudo apt-get install bash-completion -y
@@ -87,7 +134,7 @@ sudo ufw allow https
 sudo ufw allow 2377/tcp
 sudo ufw allow 7946/tcp
 sudo ufw allow 7946/udp
-sudo ufw allow 4789/udp
+sudo ufw allow 4789/1udp
 sudo ufw allow 8025/tcp
 sudo ufw allow 27017/tcp
 sudo ufw enable
@@ -112,22 +159,41 @@ To                         Action      From
 4789/udp (v6)              ALLOW       Anywhere (v6)
 8025/tcp (v6)              ALLOW       Anywhere (v6)
 
-cd /
-sudo mkdir /swarm
-sudo chown -R  mark:mark swarm/
-cd swarm/
-mkdir -p caddy_data caddy_config db-data/mongo db-data/postgres
-
-mark@aceri5:~$ docker swarm init  --advertise-addr 192.168.2.202
+mark@aceri5:~$ docker swarm init  --advertise-addr 192.168.2.205
 Swarm initialized: current node (9x9h6ajs887n3nujooli3734i) is now a manager.
 To add a worker to this swarm, run the following command:
-    docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.205:2377
+    docker swarm join --token SWMTKN-1-2thgobrruf5wf6heat1c08ohesbmmat8obqoavr2swz30apugu-eat2c5nfoidrrriwkqjha4un9 192.168.2.205:2377
 To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+or, on manager
+d swarm join-token worker
 
 d info | grep -E '(Swarm|Name|Nodes|Cluster|NodeID|Node Address|Managers)'.*
 
 mark@latitude:~$  docker swarm join --token SWMTKN-1-2la96jh7fvtutg8ugr6xl7cna7vss1ejozmuscy9jlx9rf9icp-dy90vwnvl6yr5nf0q24avxn0m 192.168.2.205:2377
 This node joined a swarm as a worker.
+
+master:
+d stack ls
+d stack services myapp
+d stack ps       myapp | egrep Run
+d stack ps myapp --no-trunc
+d service ps
+watch -t -d -n 0.5 docker node ps
+docker service ps --format "table ...(3.7)
+docker node inspect self --pretty
+d service ls
+d node ps $(docker node ls -q) | grep -i running
+d service scale mayapp_caddy=2
+d service update --image tsizism/mycaddy-stg:1.0 myapp_caddy
+
+watch 'docker service ps --format table {{.Name}}\t{{.Node}}\t{{.DesiredState}}\t{{.CurrentState}}\t{{.Error}}"  $(docker service ls -q)'
+watch -t -d -n 0.5 'docker service ps  --format "table {{.Name}}\t{{.Node}}\t{{.DesiredState}}\t{{.CurrentState}}\t{{.Error}}"  $(docker service ls -q)'
+watch -t -d -n 0.5 'docker service ps  --format "table {{.Name}}\t{{.Node}}\t{{.DesiredState}}\t{{.CurrentState}}\t{{.Error}}"  myapp_broker-service'
+docker service inspect  myapp_broker-service
+
+
+d service ps $(d service ls -q) | grep Running
 
 Worker:
 docker context ls
@@ -139,19 +205,18 @@ docker stack deploy -c swarm.prd.yaml myapp
 d service ls
 d node ps latitude
 
-mark@latitude:~$ sudo vi /etc/hosts
-127.0.0.1 localhost backend
+d exec -it 05 /bin/sh
+docker exec -it 05 nslookup trace-service
 
-Web Browser Host
-"C:\Windows\System32\drivers\etc\hosts"
-# Swarm workers
-192.168.2.200       backend
-192.168.2.201       backend
-192.168.2.202       backend
-
+Network:
 netstat -ln | grep 8080
 sudo netstat -tulpn | grep 8080
 curl -v http://localhost:8080/
+
+docker network ls
+docker network inspect myapp_default
+docker network inspect ingress
+docker network inspect docker_gwbridge
 
 
 _______________________________________________________________________________________
@@ -186,8 +251,6 @@ adduser mark
 sudo usermod -aG sudo mark   -- mark has sudo privilages 
 sudo usermod -aG docker mark
 
-Check user's usergroups: <id mark>
-
 d node ps
 d node ps latitude
 d service ps
@@ -202,4 +265,7 @@ docker logs da 2>&1   | grep 8080
 sudo systemctl status docker.service
 sudo systemctl restart docker.service
 
+Visualizer
+Z:\LossLess\7.swProjects\Pluralsight\docker\docker-swarm-getting-started\course2-swarm-gs\examples\stacks\viz\README.md
 
+https://github.com/moby/swarmkit

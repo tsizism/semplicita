@@ -1,20 +1,21 @@
+latitude=192.168.2.200 - wrk
+amd=201 - wkr
+asus=202 -  wkr
+aceri3=203 - mgr
+aceri5=192.168.2.205 - mgr aceri5.lln3nc.ca
+
 https://caddyserver.com/
 
 There are no ports exposed here in the front-end section. In fact, the only exposed ports are for mail, hog and Mongo and Postgres, and that's not going to help us hit our web application. 
-
 That's a simple web server, a web server that will take requests and forward them to the appropriate microservice. 
-
 In other words, a reverse proxy. There's lots of web servers to choose from. We could go with Apache or Engine X, and if you're comfortable with those, you may want to use that. 
-
 But I'm going to use this one. Let me switch to my web browser. I'm going to use Caddy, it is a really good web server. It's written in GO. 
-
 And one of the nice things about it is it handles installation and deployment of SSL certificates automatically. We don't have to do anything if we have an appropriate domain name. 
-
 We've registered a domain name, and we have the appropriate entry in the name servers. 
-
 It just magically puts all the SSL certificates in place for us and it uses let's encrypt, which is extremely popular and doesn't cost anything. 
-
 "Most people use Caddy as a web server or proxy, but at its core, Caddy is a server of servers. With the requisite modules, it can take on the role of any long-running process!"
+
+
 __________________________________________________________________________________________________________________________________________________________________________________
 write caddyfile for local network nodes used for docker swarm cluster
 
@@ -44,7 +45,7 @@ worker2.local.lan {
 }
 
 # Route based on paths for services in the Swarm
-services.local.lan {
+services.l ocal.lan {
     reverse_proxy /service1* 192.168.1.101:8080
     reverse_proxy /service2* 192.168.1.102:8080
 }
@@ -143,3 +144,16 @@ Update your local hosts file (e.g., /etc/hosts on Linux) to map node1.local, nod
 Restart Caddy after saving the configuration:
 
 caddy reload
+
+
+SSL
+__________________________________________________________________________________________________________________________________________________________________________________
+
+Next step is to modify things so that our front end web server caddie listens on Port 443 with SSL certificates. 
+And of course, one of the great things about caddy is it goes and gets those certificates for us. 
+It updates them when they need to be updated and all that sort of thing. So I'm looking at the files swarm.production, I'm already listening to Port 443 and I already have mounted volumes to store the SSL certificates, which is caddy_data and caddy_config. 
+If I look over on my terminal on node one inside the swarm folder, I have those two folders. 
+To start with, we're going to want to update the front end here, this microservice, because that'll be going to an https connection -so we'll just add an s there (to http).  
+We look at the file caddy file production on this file right here, this is the one that's copied into that Docker image.
+And to make this work, I'm going to delete Colon 80 for my first virtual host. And now that it's going to be using SSL, I'm going to “import security” as well this bit, which just makes sure that things work well. 
+There’s nothing that needs to change. And then of course for the broker service. And this tells Caddy, hey, we're going to be using auto generated and auto managed SSL certificates. My swarm deployment file now is swarmed up.
