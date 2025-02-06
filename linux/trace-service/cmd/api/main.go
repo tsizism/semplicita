@@ -20,29 +20,28 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
 type config struct {
-	port int
-	rpcPort int
+	port     int
+	rpcPort  int
 	grpcPort int
 }
 
 var mongoClient *mongo.Client
 
 type applicationContext struct {
-	cfg config
-	logger *log.Logger
-	httpSrv *http.Server
-	mongo *mongo.Client 
-	models data.Models
-	sessionId string 
+	cfg       config
+	logger    *log.Logger
+	httpSrv   *http.Server
+	mongo     *mongo.Client
+	models    data.Models
+	sessionId string
 }
 
 func main() {
 	var appCfg config
 
 	// go run .\cmd\api\. -port 8888
-	flag.IntVar(&appCfg.port,"port", 80, "REST port")
+	flag.IntVar(&appCfg.port, "port", 80, "REST port")
 	flag.Parse()
 
 	appCfg.rpcPort = 5001
@@ -50,9 +49,9 @@ func main() {
 
 	appLogger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	appCtx := &applicationContext {
-		cfg:  appCfg,
-		logger: appLogger,
+	appCtx := &applicationContext{
+		cfg:       appCfg,
+		logger:    appLogger,
 		sessionId: uuid.NewString(),
 	}
 
@@ -65,7 +64,7 @@ func main() {
 	}
 
 	// create ctx for disconnect
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel() // LIFO - 2
 
 	defer func() { // LIFO - 1
@@ -81,7 +80,7 @@ func main() {
 	// End of Connect to mongo
 
 	appCtx.models = data.New(appCtx.mongo, appCtx.logger)
-	
+
 	err = appCtx.InsertStartStopServiceEvent("Start")
 
 	if err != nil {
@@ -100,7 +99,7 @@ func main() {
 	go appCtx.gRPCListen()
 
 	// Wait for Ctrl-C and closeUp if happened
-	ch := make(chan os.Signal, 1)  // terminate over Ctrl-C
+	ch := make(chan os.Signal, 1) // terminate over Ctrl-C
 	// signal.Notify(ch, os.Interrupt) Ctrl-C
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go appCtx.closeUp(ch)
@@ -108,10 +107,10 @@ func main() {
 	appCtx.serve()
 }
 
-func (appCtx *applicationContext) InsertStartStopServiceEvent(startStop string) error{
-	traceEvent := data.TraceEntry {
-		Src: "trace",
-		Via: "",
+func (appCtx *applicationContext) InsertStartStopServiceEvent(startStop string) error {
+	traceEvent := data.TraceEntry{
+		Src:  "trace",
+		Via:  "",
 		Data: fmt.Sprintf("%s trace-service sessionId=%s", startStop, appCtx.sessionId),
 	}
 	err := appCtx.models.Insert(traceEvent)
@@ -127,11 +126,11 @@ func (appCtx *applicationContext) InsertStartStopServiceEvent(startStop string) 
 func (appCtx *applicationContext) closeUp(ch <-chan os.Signal) {
 	<-ch // wait  signal
 	appCtx.cleanup("CloseUp UPON signal", context.TODO())
-   	// os.Exit(1)	cleanup will unblock main() 
+	// os.Exit(1)	cleanup will unblock main()
 }
 
 func (appCtx *applicationContext) cleanup(exitReason string, ctx context.Context) {
-	appCtx.logger.Println("exitReason",exitReason)
+	appCtx.logger.Println("exitReason", exitReason)
 
 	if appCtx.mongo != nil {
 		err := appCtx.InsertStartStopServiceEvent("Stop")
@@ -141,9 +140,9 @@ func (appCtx *applicationContext) cleanup(exitReason string, ctx context.Context
 		// 	Data: fmt.Sprint("Exiting:", appCtx.sessionId),
 		// }
 		// err := appCtx.models.Insert(traceEvent)
-		
+
 		if err != nil {
-		 	appCtx.logger.Panic(err)
+			appCtx.logger.Panic(err)
 		}
 
 		appCtx.logger.Println("Disconnect Mango")
@@ -162,8 +161,8 @@ func (appCtx *applicationContext) cleanup(exitReason string, ctx context.Context
 }
 
 func (appCtx *applicationContext) serve() {
-	appCtx.httpSrv = &http.Server {
-		Addr: fmt.Sprintf(":%d", appCtx.cfg.port),
+	appCtx.httpSrv = &http.Server{
+		Addr:    fmt.Sprintf(":%d", appCtx.cfg.port),
 		Handler: appCtx.routes(),
 	}
 
@@ -209,7 +208,7 @@ func (appCtx *applicationContext) connectToMongo() error {
 	var err error
 
 	mongoClient, err = mongo.Connect(context.TODO(), clientOptions)
-	
+
 	if err != nil {
 		appCtx.logger.Println("Faild to connect", err)
 		return err

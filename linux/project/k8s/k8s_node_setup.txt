@@ -1,0 +1,49 @@
+echo $BASH_VERSION
+brew install bash
+echo $BASH_VERSION $SHELL
+Homebrew usually installs it at /usr/local/bin/bash.
+
+brew install bash-completion@2
+
+echo 'alias k=kubectl' >>~/.bash_profile
+echo 'complete -o default -F __start_kubectl k' >>~/.bash_profil
+
+minikube start --nodes=2
+minikube status
+k get pod -A
+
+minikube stop
+minikube start
+minikube addons enable ingress
+
+minikube dashboard
+
+$k apply  -f k8s/
+deployment.apps/mango created
+service/mongo created
+
+kubectl apply -f k8s/rabbit.yml
+
+Instead of deploying containers, we deploy pods and a pod can have one or more container in it, and a pod can also have one or more service in it.
+So the basic unit within a Docker swarm is a container, in our case, Docker containers.
+But in Kubernetes, the basic unit in a Kubernetes cluster is actually called a pod.
+
+k get deployments 
+k get svc
+
+k logs <pod>
+
+k delete svc broker-service
+k expose deployment broker-service --type=LoadBalancer --port=8080 --target-port=8080
+
+get deploy,svc,po
+
+Ingress:
+k apply -f k8s/fe.yml 
+k apply -f ingress.yml 
+
+$cat /etc/hosts
+127.0.0.1       localhost front-end.info broker-service.info
+
+minikube tunnel    -- Connect to LoadBalancer services
+

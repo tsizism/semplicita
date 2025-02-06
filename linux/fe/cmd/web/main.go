@@ -7,8 +7,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"time"
 	"os"
+	"time"
 )
 
 func currentTime() string {
@@ -18,7 +18,7 @@ func currentTime() string {
 }
 
 // $go build -v -a -o frontApp ./cmd/web
-// ./frontApp -port 8888
+// running on localhost:  ./frontApp -port 80
 func main() {
 	defaultPort := 8888
 	port2 := flag.Int("port", defaultPort, "Web Port")
@@ -39,6 +39,7 @@ func main() {
 }
 
 // this will be used to store the path to the rendered page to the read only file system
+//
 //go:embed templates
 var templateFS embed.FS
 
@@ -52,7 +53,7 @@ func render(w http.ResponseWriter, pageFileName string) {
 		templatesBase + "templates/footer.partial.gohtml",
 	}
 
-	renderedPagePath := fmt.Sprintf(templatesBase + "templates/%s", pageFileName)
+	renderedPagePath := fmt.Sprintf(templatesBase+"templates/%s", pageFileName)
 	partials = append(partials, renderedPagePath)
 
 	fmt.Printf("partials=%v\n", partials)
@@ -84,10 +85,12 @@ func render(w http.ResponseWriter, pageFileName string) {
 		return
 	}
 
-	var brokerURLWarper struct{
+	var brokerURLWarper struct {
 		BrokerURL string
 	}
 
+	// export BROKER_URL=http://localhost:8080
+	// echo $BROKER_URL
 	brokerURLWarper.BrokerURL = os.Getenv("BROKER_URL")
 
 	fmt.Printf("BROKER_URL:=%s\n", brokerURLWarper.BrokerURL)

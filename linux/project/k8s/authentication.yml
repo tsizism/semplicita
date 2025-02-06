@@ -1,0 +1,45 @@
+# deployment definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentication-service
+spec:
+  selector:
+    matchLabels:
+      app: authentication-service
+  template:
+    metadata:
+      labels:
+        app: authentication-service
+    spec:
+      containers:
+      - name: authentication-service
+        image: 'tsizism/authentication-service:1.0'
+        env:
+          - name: DSN 
+            value : "host=host.minikube.internal port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+        ports: 
+          - containerPort: 8081
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentication-service
+spec:
+  selector:
+    app: authentication-service
+  ports:
+  - protocol: TCP
+    name: main-port
+    port: 8081
+    targetPort: 8081
+  

@@ -1,0 +1,42 @@
+# deployment definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listener-service
+spec:
+  selector:
+    matchLabels:
+      app: listener-service
+  template:
+    metadata:
+      labels:
+        app: listener-service
+    spec:
+      containers:
+      - name: listener-service
+        image: 'tsizism/listener-service:1.0'
+        ports: 
+          - containerPort: 80
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: listener-service
+spec:
+  selector:
+    app: listener-service
+  ports:
+  - protocol: TCP
+    name: main-port
+    port: 80
+    targetPort: 80
+  

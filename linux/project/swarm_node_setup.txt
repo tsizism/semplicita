@@ -32,6 +32,7 @@ alias src='source ~/.bashrc'
 alias d='docker'
 alias dcl='docker container ls'
 alias dlt='docker logs -f -t '
+alias k='kubectl'
 
 ls command color:
 LS_COLORS=$LS_COLORS:'di=0;35:' ; export LS_COLORS

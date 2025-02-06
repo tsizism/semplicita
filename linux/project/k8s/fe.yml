@@ -1,0 +1,45 @@
+# deployment definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front-end
+spec:
+  selector:
+    matchLabels:
+      app: front-end
+  template:
+    metadata:
+      labels:
+        app: front-end
+    spec:
+      containers:
+      - name: front-end
+        image: 'tsizism/fe:1.0'
+        env:
+          - name: BROKER_URL 
+            value : "http://broker-service.info"
+        ports: 
+          - containerPort: 8888
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: front-end
+spec:
+  selector:
+    app: front-end
+  ports:
+  - protocol: TCP
+    name: main-port
+    port: 8888
+    targetPort: 8888
+  
