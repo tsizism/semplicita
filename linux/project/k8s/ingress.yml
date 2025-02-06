@@ -1,9 +1,11 @@
+#k apply -f ingress.yml 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: my-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"  # Enables regex for path matching
 spec:
   rules:
     - host: front-end.info
@@ -19,8 +21,15 @@ spec:
     - host: broker-service.info
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /.* #Root
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: broker-service
+                port:
+                  number: 8080
+          - path: /([^/]+)(/.*|$)  # Match any random subdirectory or path after the domain
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: broker-service
