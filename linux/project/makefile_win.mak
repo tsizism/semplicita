@@ -1,4 +1,4 @@
-# make -f makefile_my_win  build_broker
+# make -f compose_win.mak up_build 
 
 SHELL=cmd.exe
 FRONT_END_BINARY=frontApp.exe

@@ -158,7 +158,7 @@ d swarm join-token manager -- get join command with tocken for manager
 d swarm join-token worker  -- get join command with tocken for worker
 
 3.
-d stack deploy -c swarm.yaml semplicita_swarm
+d stack deploy -c swarm.yaml myapp
 
 docker service scale semplicita_swarm_listener-service=3
 d service update --image tsizism/fe:1.0 semplicita_swarm_fe

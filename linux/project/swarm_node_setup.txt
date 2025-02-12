@@ -14,6 +14,7 @@ Web Browser Host
 192.168.2.201       backend
 192.168.2.202       backend
 
+127.0.0.1 kubernetes.docker.internal broker-service
 
 
 netstat -ntulp | grep dockerd
