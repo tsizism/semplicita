@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
 
 const (
@@ -19,18 +18,6 @@ const (
 	ApiKey_YHFinanceCompleteAPI    = "9b405718ddmsh954d4191ebcf658p148c17jsn58521162b938"
 	ApiHost_YHFinanceCompleteAPI   = "yh-finance-complete.p.rapidapi.com"
 )
-
-type YfhistoricalResponse struct {
-	Date     string  `json:"date"`
-	Adjclose float32 `json:"adjclose"`
-	Close    float32 `json:"close"`
-	High     float32 `json:"high"`
-	Low      float32 `json:"low"`
-	Open     float32 `json:"open"`
-	Volume   float32 `json:"volume"`
-}
-
-// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
 
 type YHFinanceCompleteAPI struct {
 	logger           *log.Logger
@@ -40,21 +27,14 @@ type YHFinanceCompleteAPI struct {
 	cacheFileNameFmt string
 }
 
-func weekStartDate(date time.Time) time.Time {
-	offset := (int(time.Monday) - int(date.Weekday()) - 7) % 7
-	result := date.Add(time.Duration(offset*24) * time.Hour)
-	return result
-}
-
-// NewYHFinanceCompleteAPI creates a new instance of YHFinanceCompleteAPI with the provided logger.
-// It initializes the API with the necessary URL domain, API host, and API key.
-// The logger is set to output to standard output with time-stamped log entries.
+// weekStartDate calculates the start date of the week for a given date.
+// The start of the week is considered to be Monday.
 //
 // Parameters:
-//   - logger: A pointer to a log.Logger instance for logging purposes.
+//   - date: The date for which the start of the week is to be calculated.
 //
 // Returns:
-//   - YHFinanceCompleteAPI: A new instance of YHFinanceCompleteAPI configured with the provided logger and default settings.
+//   - time.Time: The start date of the week (Monday) for the given date.
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	return YHFinanceCompleteAPI{
 		urlDomain:        UrlDomain_YHFinanceCompleteAPI,
@@ -106,11 +86,24 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	return req, nil
 }
 
+// GetHistoricalWithUnmarshal retrieves historical financial data for a given ticker symbol
+// between the specified start date (sdate) and end date (edate). It first attempts to read
+// the data from a cached file. If the file does not exist, it calls an external API to fetch
+// the data, saves the response to a cache file, and then unmarshals the JSON response into
+// a slice of YfhistoricalResponse structs.
+//
+// Parameters:
+//   - ticker: The stock ticker symbol (e.g., "TSLA").
+//   - sdate: The start date for the historical data in the format "YYYY-MM-DD".
+//   - edate: The end date for the historical data in the format "YYYY-MM-DD".
+//
+// Returns:
+//   - A slice of YfhistoricalResponse structs containing the historical financial data.
+//   - An error if any issues occur during the process of reading the file, making the API
+//     request, or unmarshaling the JSON response.
 func (api YHFinanceCompleteAPI) GetHistoricalWithUnmarshal(ticker, sdate, edate string) ([]YfhistoricalResponse, error) {
 	// [map[adjclose:350.7300109863281 close:350.7300109863281 date:2025-02-10T14:30:00.000Z high:362.70001220703125 low:350.510009765625 open:356.2099914550781 volume:7.75149e+07]] 1 1
-
 	// url := "https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=TSLA&sdate=2024-01-10&edate=2024-02-16"
-	// url := "https://yh-finance-complete.p.rapidapi.com/yhfhistorical?edate=2025-02-01&sdate=2025-01-27&ticker=TSLA"
 
 	var jsonMapArr []YfhistoricalResponse
 	api.logger.Printf("YHFinanceCompleteAPI.go: yhfhistoricalUnmarshal ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
@@ -170,18 +163,10 @@ func (api YHFinanceCompleteAPI) GetHistoricalWithUnmarshal(ticker, sdate, edate 
 	fmt.Println(jsonMapArr, len(jsonMapArr), cap(jsonMapArr))
 	fmt.Printf("%+v\n", jsonMapArr)
 
-	// var resp YfhistoricalResponse
-	// var jsonMapArr2 []YfhistoricalResponse
-	// if err := json.NewDecoder(res.Body).Decode(&jsonMapArr2); err != nil {
-	// 	fmt.Println("json.Decode error:", err)
-	// }
-
-	// fmt.Printf("resp=%+v\n",jsonMapArr2)
-
 	return jsonMapArr, nil
 }
 
-func (api YHFinanceCompleteAPI) YHFHistoricalWithDecode(ticker, sdate, edate string) ([]YfhistoricalResponse, error) {
+func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate string) ([]YfhistoricalResponse, error) {
 	// [map[adjclose:350.7300109863281 close:350.7300109863281 date:2025-02-10T14:30:00.000Z high:362.70001220703125 low:350.510009765625 open:356.2099914550781 volume:7.75149e+07]] 1 1
 	var jsonMapArr []YfhistoricalResponse
 
@@ -209,65 +194,84 @@ func (api YHFinanceCompleteAPI) YHFHistoricalWithDecode(ticker, sdate, edate str
 		return jsonMapArr, fmt.Errorf("json.Decode error: %w", err)
 	}
 
+	fmt.Println(jsonMapArr, len(jsonMapArr), cap(jsonMapArr))
 	fmt.Printf("resp=%+v\n", jsonMapArr)
 
 	return jsonMapArr, nil
 }
 
-// func (api YHFinanceCompleteAPI) GetStockPrice(ticker string) (float64, error) {
-// 	api.logger.Println("GetStockPrice: ticker=", ticker)
+func (api YHFinanceCompleteAPI) GetStockPrice(ticker string) (YfpriceResponse, error) {
+	api.logger.Println("GetStockPrice: ticker=", ticker)
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
 
-// 	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
+	var jsonResponse YfpriceResponse
 
-// 	pararms := map[string]string{"ticker": ticker}
+	if ticker == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
+	}
 
-// 	req, err := api.buildRequest("yhprice", pararms); if err != nil {
-// 		api.logger.Println("buildRequest error=", err)
-// 		return 0, fmt.Errorf("buildRequest error: %w", err)
-// 	}
+	queryParams := url.Values{"ticker": {ticker}}
 
-// 	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
+	req, err := api.buildRequest("yhprice", queryParams)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+	}
 
-// 	req, err := http.NewRequest("GET", url, nil)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("http.NewRequest error: %w", err)
-// 	}
+	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
 
-// 	req.Header.Add("x-rapidapi-key", apiKey)
-// 	req.Header.Add("x-rapidapi-host", apiHost)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
 
-// 	res, err := http.DefaultClient.Do(req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("DefaultClient.Do error: %w", err)
-// 	}
+	defer res.Body.Close()
 
-// 	defer res.Body.Close()
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
 
-// 	var quoteResponse QuoteResponse
-// 	if err := json.NewDecoder(res.Body).Decode(&quoteResponse); err != nil {
-// 		return nil, err
-// 	}
+	if jsonResponse.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
 
-// 	return &quoteResponse, nil
-// }
+	fmt.Printf("resp=%+v\n", jsonResponse)
 
-// func buildRequestForYhfhistorical(ticker, sdate, edate string) (*http.Request, error) {
-// 	fmt.Printf("YHFinanceCompleteAPI.go: yhfhistoricalDecode ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
+	return jsonResponse, nil
+}
 
-// 	// url := "https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=TSLA&sdate=2025-02-10&edate=2025-02-11"
-// 	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
-// 	url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
-// 	println(url)
+func (api YHFinanceCompleteAPI) GetStockSummaryDetail(ticker string) (YfResponse, error) {
+	api.logger.Println("GetSummaryDetail: ticker=", ticker)
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhsummary?ticker=BCE.TO"
 
-// 	req, err := http.NewRequest("GET", url, nil)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("http.NewRequest error: %w", err)
-// 	}
+	var jsonResponse YfResponse
 
-// 	fmt.Printf("req=%+v\n", req)
+	if ticker == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
+	}
 
-// 	req.Header.Add("x-rapidapi-key", "9b405718ddmsh954d4191ebcf658p148c17jsn58521162b938")
-// 	req.Header.Add("x-rapidapi-host", "yh-finance-complete.p.rapidapi.com")
+	queryParams := url.Values{"ticker": {ticker}}
 
-// 	return req, nil
-// }
+	req, err := api.buildRequest("yhf", queryParams)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
+
+	defer res.Body.Close()
+
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
+
+	if jsonResponse.Price.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
+
+	fmt.Printf("GetStockSummaryDetail resp=%+v\n", jsonResponse)
+
+	return jsonResponse, nil
+}
