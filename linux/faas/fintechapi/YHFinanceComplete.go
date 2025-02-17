@@ -200,6 +200,22 @@ func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate stri
 	return jsonMapArr, nil
 }
 
+// GetStockPrice retrieves the stock price for the given ticker symbol.
+// It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
+//
+// Parameters:
+//   - ticker: The stock ticker symbol for which the price is to be retrieved.
+//
+// Returns:
+//   - YfpriceResponse: The response containing the stock price information.
+//   - error: An error if the request fails or the response is invalid.
+//
+// Errors:
+//   - Returns an error if the ticker is empty.
+//   - Returns an error if there is an issue building the request.
+//   - Returns an error if the HTTP request fails.
+//   - Returns an error if the response cannot be decoded.
+//   - Returns an error if the symbol in the response is empty.
 func (api YHFinanceCompleteAPI) GetStockPrice(ticker string) (YfpriceResponse, error) {
 	api.logger.Println("GetStockPrice: ticker=", ticker)
 	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
@@ -239,6 +255,22 @@ func (api YHFinanceCompleteAPI) GetStockPrice(ticker string) (YfpriceResponse, e
 	return jsonResponse, nil
 }
 
+// GetStockSummaryDetail retrieves the stock summary details for a given ticker symbol.
+// It sends a request to the YH Finance Complete API and decodes the response into a YfResponse struct.
+//
+// Parameters:
+//   - ticker: The stock ticker symbol for which to retrieve the summary details.
+//
+// Returns:
+//   - YfResponse: The response containing the stock summary details.
+//   - error: An error if the request fails or the response is invalid.
+//
+// Errors:
+//   - Returns an error if the ticker is empty.
+//   - Returns an error if there is an issue building the request.
+//   - Returns an error if there is an issue with the HTTP request.
+//   - Returns an error if there is an issue decoding the JSON response.
+//   - Returns an error if the symbol in the response is empty.
 func (api YHFinanceCompleteAPI) GetStockSummaryDetail(ticker string) (YfResponse, error) {
 	api.logger.Println("GetSummaryDetail: ticker=", ticker)
 	// url := "https://yh-finance-complete.p.rapidapi.com/yhsummary?ticker=BCE.TO"

@@ -7,9 +7,12 @@ package main
 //C:\Users\tsizi\go
 
 import (
+	"faas/fintechapi"
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/rpc"
 	"os"
 	"runtime/debug"
 )
@@ -38,6 +41,7 @@ const (
 )
 
 const DEFAULT_PORT = 8083
+const DEFAULT_RPC_PORT = 5003
 
 func main() {
 	print(`Starting Module`)
@@ -53,7 +57,22 @@ func main() {
 		cfg: cfg,
 	}
 
-	appCtx.logger.Printf(`Started Yahoo service on port %d`, appCtx.cfg.port)
+	appCtx.logger.Printf(`Started Yahoo service on port %d`, DEFAULT_RPC_PORT)
 
-	
+	rpcServer := fintechapi.NewRPCServer(fintechapi.StockAPI{})
+
+	err := rpc.Register(rpcServer); if err != nil {
+		appCtx.logger.Fatalf(`Error registering RPC server: %v`, err)
+	}
+
+	// rpc.HandleHTTP()
+
+    listener, err :=  net.Listen("tcp", fmt.Sprintf(":%d", DEFAULT_RPC_PORT)); if err != nil {
+		appCtx.logger.Fatalf(`Error starting HTTP listener: %v`, err)
+	}	
+
+	defer listener.Close()
+
+	rpc.Accept(listener)
+
 }

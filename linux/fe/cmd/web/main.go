@@ -19,6 +19,12 @@ func currentTime() string {
 
 // $go build -v -a -o frontApp ./cmd/web
 // running on localhost:  ./frontApp -port 80
+// export BROKER_URL=http://localhost:8080
+// echo $BROKER_URL
+// $env:BROKER_URL="http://localhost:8080"
+// $env:BROKER_URL
+// set BROKER_URL=http://localhost:8080
+// echo %BROKER_URL%
 func main() {
 	defaultPort := 8888
 	port2 := flag.Int("port", defaultPort, "Web Port")
@@ -89,8 +95,6 @@ func render(w http.ResponseWriter, pageFileName string) {
 		BrokerURL string
 	}
 
-	// export BROKER_URL=http://localhost:8080
-	// echo $BROKER_URL
 	brokerURLWarper.BrokerURL = os.Getenv("BROKER_URL")
 
 	fmt.Printf("BROKER_URL:=%s\n", brokerURLWarper.BrokerURL)

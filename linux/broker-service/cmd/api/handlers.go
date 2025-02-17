@@ -79,7 +79,8 @@ func (appCtx *applicationContext) handleSubmission(w http.ResponseWriter, r *htt
 		appCtx.sendMail(w, requestPayload.Mail)
 	case "trace":
 		requestPayload.Trace.Via = "RPC"
-		appCtx.logEventRPC(w, requestPayload.Trace)
+		// appCtx.logEventRPC(w, requestPayload.Trace)
+		appCtx.getStockPrice(w)
 	case "traceMq":
 		requestPayload.Trace.Via = "MQ"
 		appCtx.logEventMQ(w, requestPayload.Trace)
@@ -97,8 +98,8 @@ type RPCPayload struct {
 	Data string
 }
 
-func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, t TracePayload) {
-	appCtx.logger.Printf("logEventRPC: payload=%+v", t)
+func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, tracePayload TracePayload) {
+	appCtx.logger.Printf("logEventRPC: payload=%+v", tracePayload)
 	client, err := rpc.Dial("tcp", "trace-service:5001")
 
 	if err != nil {
@@ -107,9 +108,9 @@ func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, t TracePayl
 	}
 
 	rpcPayload := RPCPayload {
-		Src: t.Src,
-		Via: t.Via,
-		Data: t.Data,
+		Src: tracePayload.Src,
+		Via: tracePayload.Via,
+		Data: tracePayload.Data,
 	}
 	
 	var result string 
@@ -127,6 +128,48 @@ func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, t TracePayl
 
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
+
+func (appCtx *applicationContext) getStockPrice(w http.ResponseWriter) {
+	ticker := "AAPL"
+	appCtx.logger.Printf("getStockPrice: payload=%+v", ticker)
+	client, err := rpc.Dial("tcp", "localhost:5003")  // faas-service:5003
+
+	if err != nil {
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	type GetStockPriceRequest struct {
+		Ticker string
+	}
+	
+	// GetStockPriceResponse represents the response for getting stock price
+	type GetStockPriceResponse struct {
+		Price float32
+		Error string
+	}
+		
+	rpcPayload := GetStockPriceRequest {
+		Ticker: ticker,
+	}
+
+	var result GetStockPriceResponse 
+	err = client.Call("RPCServer.GetStockPrice", rpcPayload, &result);	if err != nil {
+		appCtx.logger.Printf("getStockPrice: Failed to call RPC %s", err)
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	appCtx.logger.Printf("getStockPrice: result=%+v", result)
+
+	payload := shared.JsonResponse{
+		Error:   false,
+		Message: fmt.Sprintf("Stock Price: %f", result.Price),
+	}
+
+	shared.WriteJSON(w, http.StatusAccepted, payload)
+}
+
 
 func (appCtx *applicationContext) traceGRPC(w http.ResponseWriter, r *http.Request) {
 	var requestPayload RequestPayload

@@ -80,6 +80,13 @@ go get github.com/rabbitmq/amqp091-go
 
 https://www.beekeeperstudio.io/  - 4 pay
 
+
+rabbitmq
+docker compose -f 'project\docker-compose.yaml' up -d --build 'rabbitmq'
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672  rabbitmq:alpine
+
+
+
 pgAdmin4   https://www.pgadmin.org/
 Postrgess: /Users/Shared/semplicita/linux/project/docker-compose.yaml, pgAdmin --> Server : authserver --> Database: users --> Query Tool --> select * from users
 https://www.mongodb.com/try/download/compass

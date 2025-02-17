@@ -12,6 +12,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const RABBITMQ_AMQP_URI = "amqp://guest:guest@localhost"   // "amqp://guest:guest@rabbitmq"
+
 type config struct {
     port int
 	gRPCPort int
@@ -49,9 +51,7 @@ func main() {
 
     addr := fmt.Sprintf(":%d", appCtx.cfg.port)
 
-	conn, err := appCtx.connectMQ()
-
-	if err != nil {
+	conn, err := appCtx.connectMQ(); if err != nil {
 		appCtx.logger.Fatalln(err)
 		os.Exit(1)
 	}
@@ -72,14 +72,15 @@ func main() {
     }
 }
 
+
 func (appCtx *applicationContext) connectMQ() (*amqp.Connection, error) {
 	appCtx.logger.Println("Conneting to RabittMQ ..")
 	var conn *amqp.Connection
 	counts := 0
 
 	for {
-		// c, err := amqp.Dial("amqp://guest:guest@localhost")
-		c, err := amqp.Dial("amqp://guest:guest@rabbitmq")
+		c, err := amqp.Dial(RABBITMQ_AMQP_URI)
+		//c, err := amqp.Dial("amqp://guest:guest@rabbitmq")
 
 		if err != nil {
 			appCtx.logger.Printf("RabbitMQ not yet ready, count=%d\n", counts)
