@@ -2,6 +2,9 @@ package fintechapi
 
 // https://rapidapi.com/belchiorarkad-FqvHs2EDOtP/api/yh-finance-complete
 // https://algotrading101.com/learn/yahoo-finance-api-guide/
+// https://rapidapi.com/
+// Basic $9.99 - 14,986 / Month
+
 
 import (
 	"encoding/json"
@@ -13,18 +16,18 @@ import (
 	"os"
 )
 
-// export YHFINCOMPLETE_APIKEY=~/yhfincomplete_apikey.txt
-// echo $YHFINCOMPLETE_APIKEY
-// $env:YHFINCOMPLETE_APIKEY="C:\github\yhfincomplete_apikey.txt"
-// $env:YHFINCOMPLETE_APIKEY
-// set YHFINCOMPLETE_APIKEY="C:\github\yhfincomplete_apikey.txt"
+// export YHFINCOMPLETE_APIKEY_FN=~/yhfincomplete_apikey.txt
+// echo $YHFINCOMPLETE_APIKEY_FN
+// $env:YHFINCOMPLETE_APIKEY_FN="C:\github\yhfincomplete_apikey.txt"
+// $env:YHFINCOMPLETE_APIKEY_FN
+// set YHFINCOMPLETE_APIKEY_FN="C:\github\yhfincomplete_apikey.txt"
 // echo %BROKER_URL%
 
 
 const (
 	UrlDomain_YHFinanceCompleteAPI 	= "https://yh-finance-complete.p.rapidapi.com"
 	ApiHost_YHFinanceCompleteAPI   	= "yh-finance-complete.p.rapidapi.com"
-	ApiHost_ENVVAR		   			= "YHFINCOMPLETE_APIKEY"
+	ApiHost_ENVVAR		   			= "YHFINCOMPLETE_APIKEY_FN"
 
 )
 
@@ -92,6 +95,120 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 
 	return req, nil
 }
+
+
+
+// GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
+// It sends a request to the YH Finance Complete API and decodes the JSON response into a YffullstockpriceResponse struct.
+//
+// Parameters:
+//   - symbol: The stock symbol for which to retrieve the price information.
+//
+// Returns:
+//   - YffullstockpriceResponse: The response containing the stock price information.
+//   - error: An error if the request fails or the response is invalid.
+//
+// The function performs the following steps:
+//   1. Logs the request with the provided stock symbol.
+//   2. Checks if the symbol is empty and returns an error if it is.
+//   3. Builds the request with the given symbol as a query parameter.
+//   4. Sends the request using the default HTTP client.
+//   5. Decodes the JSON response into the YffullstockpriceResponse struct.
+//   6. Checks if the symbol in the response is empty and returns an error if it is.
+//   7. Returns the decoded response and any error encountered during the process.
+
+func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (YffullstockpriceResponse, error) {
+	api.logger.Println("GetSingleStockFullPrice: symbol=", symbol)
+	//  "https://yh-finance-complete.p.rapidapi.com/price?symbol=cm.to"
+
+	var jsonResponse YffullstockpriceResponse
+
+	if symbol == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
+	}
+
+	queryParams := url.Values{"symbol": {symbol}}
+
+	req, err := api.buildRequest("price", queryParams); if err != nil {
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+	}
+
+	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
+
+	res, err := http.DefaultClient.Do(req);	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
+
+	defer res.Body.Close()
+
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
+
+	if jsonResponse.Price.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
+
+	fmt.Printf("GetSingleStockFullPrice resp=%+v\n", jsonResponse)
+
+	return jsonResponse, nil
+}
+
+// GetSingleStockPrice retrieves the stock price for the given ticker symbol.
+// It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
+//
+// Parameters:
+//   - ticker: The stock ticker symbol for which the price is to be retrieved.
+//
+// Returns:
+//   - YfpriceResponse: The response containing the stock price information.
+//   - error: An error if the request fails or the response is invalid.
+//
+// Errors:
+//   - Returns an error if the ticker is empty.
+//   - Returns an error if there is an issue building the request.
+//   - Returns an error if the HTTP request fails.
+//   - Returns an error if the response cannot be decoded.
+//   - Returns an error if the symbol in the response is empty.
+func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceResponse, error) {
+	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
+
+	var jsonResponse YfpriceResponse
+
+	if ticker == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
+	}
+
+	queryParams := url.Values{"ticker": {ticker}}
+
+	req, err := api.buildRequest("yhprice", queryParams)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+	}
+
+	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
+
+	defer res.Body.Close()
+
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
+
+	if jsonResponse.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
+
+	fmt.Printf("resp=%+v\n", jsonResponse)
+
+	return jsonResponse, nil
+}
+
 
 // GetHistoricalWithUnmarshal retrieves historical financial data for a given ticker symbol
 // between the specified start date (sdate) and end date (edate). It first attempts to read
@@ -207,60 +324,6 @@ func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate stri
 	return jsonMapArr, nil
 }
 
-// GetSingleStockPrice retrieves the stock price for the given ticker symbol.
-// It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
-//
-// Parameters:
-//   - ticker: The stock ticker symbol for which the price is to be retrieved.
-//
-// Returns:
-//   - YfpriceResponse: The response containing the stock price information.
-//   - error: An error if the request fails or the response is invalid.
-//
-// Errors:
-//   - Returns an error if the ticker is empty.
-//   - Returns an error if there is an issue building the request.
-//   - Returns an error if the HTTP request fails.
-//   - Returns an error if the response cannot be decoded.
-//   - Returns an error if the symbol in the response is empty.
-func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceResponse, error) {
-	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
-	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
-
-	var jsonResponse YfpriceResponse
-
-	if ticker == "" {
-		return jsonResponse, fmt.Errorf("ticker is empty")
-	}
-
-	queryParams := url.Values{"ticker": {ticker}}
-
-	req, err := api.buildRequest("yhprice", queryParams)
-	if err != nil {
-		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
-	}
-
-	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
-	}
-
-	defer res.Body.Close()
-
-	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
-		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
-	}
-
-	if jsonResponse.Symbol == "" {
-		return jsonResponse, fmt.Errorf("symbol in response is empty")
-	}
-
-	fmt.Printf("resp=%+v\n", jsonResponse)
-
-	return jsonResponse, nil
-}
 
 // GetStockSummaryDetail retrieves the stock summary details for a given ticker symbol.
 // It sends a request to the YH Finance Complete API and decodes the response into a YfResponse struct.

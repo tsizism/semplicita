@@ -81,7 +81,8 @@ func (appCtx *applicationContext) handleSubmission(w http.ResponseWriter, r *htt
 		requestPayload.Trace.Via = "RPC"
 		// appCtx.logEventRPC(w, requestPayload.Trace)
 		//appCtx.getSingleStockPrice(w)
-		appCtx.getStocksPrice(w)
+		// appCtx.getStocksPrice(w)
+		appCtx.getStocksFullPricCSV(w)
 	case "traceMq":
 		requestPayload.Trace.Via = "MQ"
 		appCtx.logEventMQ(w, requestPayload.Trace)
@@ -130,9 +131,9 @@ func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, tracePayloa
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
 
-func (appCtx *applicationContext) getSingleStockPrice(w http.ResponseWriter) {
+func (appCtx *applicationContext) getSingleStockPriceTxt(w http.ResponseWriter) {
 	ticker := "AAPL"
-	appCtx.logger.Printf("getSingleStockPrice: payload=%+v", ticker)
+	appCtx.logger.Printf("getSingleStockPriceTxt: payload=%+v", ticker)
 	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
 
 	if err != nil {
@@ -140,41 +141,33 @@ func (appCtx *applicationContext) getSingleStockPrice(w http.ResponseWriter) {
 		return
 	}
 
-	type GetSingleStockPriceRequest struct {
-		Ticker string
-	}
-
-	// GetSingleStockPriceResponse represents the response for getting stock price
-	type GetSingleStockPriceResponse struct {
-		Price float32
+	type GetSingleStockPriceReqResp struct {
+		TickerPrice string
 		Error string
 	}
 
-	rpcPayload := GetSingleStockPriceRequest{
-		Ticker: ticker,
-	}
-
-	var result GetSingleStockPriceResponse
-	err = client.Call("RPCServer.GetSingleStockPrice", rpcPayload, &result)
+	var rpcPayload,result GetSingleStockPriceReqResp
+	rpcPayload.TickerPrice = ticker
+	err = client.Call("RPCServer.GetSingleStockPriceTxt", rpcPayload, &result)
 	if err != nil {
-		appCtx.logger.Printf("GetSingleStockPrice: Failed to call RPC %s", err)
+		appCtx.logger.Printf("GetSingleStockPriceTxt: Failed to call RPC %s", err)
 		shared.ErrorJSON(w, err)
 		return
 	}
 
-	appCtx.logger.Printf("getStockPrice for%s: result=%+v", ticker, result)
+	appCtx.logger.Printf("GetSingleStockPriceTxt for%s: result=%+v", ticker, result)
 
 	payload := shared.JsonResponse{
 		Error:   false,
-		Message: fmt.Sprintf("Stock Price: %f", result.Price),
+		Message: fmt.Sprintf("Stock Price: %f", result.TickerPrice),
 	}
 
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
 
-func (appCtx *applicationContext) getStocksPrice(w http.ResponseWriter) {
-	tickers := "BCE.TO,BCE"
-	appCtx.logger.Printf("getStocksPrice: payload=%+v", tickers)
+func (appCtx *applicationContext) getStocksFullPricCSV(w http.ResponseWriter) {
+	tickers := "BCE.TO,BCE, CM, CM.TO"
+	appCtx.logger.Printf("getStocksFullPriceCSV: payload=%+v", tickers)
 	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
 
 	if err != nil {
@@ -182,21 +175,55 @@ func (appCtx *applicationContext) getStocksPrice(w http.ResponseWriter) {
 		return
 	}
 
-	type GetStocksPriceReqResp struct {
+	type GetStocksPriceReqRespCSV struct {
 		TickerPriceCSV string
 		Error string
 	}
 
-	var result, rpcPayload GetStocksPriceReqResp
+	var result, rpcPayload GetStocksPriceReqRespCSV
 	rpcPayload.TickerPriceCSV = tickers
 	
-	err = client.Call("RPCServer.GetStocksPrice", rpcPayload, &result);	if err != nil {
-		appCtx.logger.Printf("GetSingleStockPrice: Failed to call RPC %s", err)
+	err = client.Call("RPCServer.GetStocksFullPriceCSV", rpcPayload, &result);	if err != nil {
+		appCtx.logger.Printf("GetStocksFullPrice: Failed to call RPC %s", err)
 		shared.ErrorJSON(w, err)
 		return
 	}
 
-	appCtx.logger.Printf("GetStocksPrice for%s: result=%+v", tickers, result)
+	appCtx.logger.Printf("GetStocksFullPriceCSV for %s: result=%+v", tickers, result)
+
+	payload := shared.JsonResponse{
+		Error:   false,
+		Message: fmt.Sprintf("TickersPriceCSV: %s", result.TickerPriceCSV),
+	}
+
+	shared.WriteJSON(w, http.StatusAccepted, payload)
+}
+
+func (appCtx *applicationContext) getStocksPriceCSV(w http.ResponseWriter) {
+	tickers := "BCE.TO,BCE"
+	appCtx.logger.Printf("getStocksPriceCSV: payload=%+v", tickers)
+	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
+
+	if err != nil {
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	type GetStocksPriceReqRespCSV struct {
+		TickerPriceCSV string
+		Error string
+	}
+
+	var result, rpcPayload GetStocksPriceReqRespCSV
+	rpcPayload.TickerPriceCSV = tickers
+	
+	err = client.Call("RPCServer.GetStocksPriceCSV", rpcPayload, &result);	if err != nil {
+		appCtx.logger.Printf("GetStocksPriceCSV: Failed to call RPC %s", err)
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	appCtx.logger.Printf("GetStocksPriceCSV for%s: result=%+v", tickers, result)
 
 	payload := shared.JsonResponse{
 		Error:   false,

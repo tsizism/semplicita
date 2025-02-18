@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// go test .\fintechapi\. -v
-//go test YHFinanceComplete_test.go YHFinanceComplete.go .\YHFinanceResponse.go   -v 
+//go test .\fintechapi\. -v
+//go test yhfc.go yhfc_test.go yhfc_response.go
 
 // func buildRequest(t *testing.T) {
 // 	ticker, sdate, edate := "TSLA", "2025-02-10", "2025-02-10"
@@ -59,6 +59,16 @@ func util_getTestWeekStartAndEndDates() (string, string) {
 
 	return sdate, edate
 }
+
+// Benchmark
+//func setupSuite(tb testing.TB) func(tb testing.TB) {
+
+func init() {
+	log.Println("setup suite")
+
+	os.Setenv("YHFINCOMPLETE_APIKEY_FN", "C:\\github\\yhfincomplete_apikey.txt")
+}
+
 func TestWeekStartDate(t *testing.T) {
 	date := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := 0; i < 7; i++ {
@@ -232,6 +242,42 @@ func Test_GetStockSummaryDetail(t *testing.T) {
 		// assert
 		assert.NotNil(t, err)
 		assert.Empty(t, summaryResponse)
+	})
+}
+
+func Test_GetSingleStockFullPrice(t *testing.T) {
+	yahooApi := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+	symbol := "BCE.TO"
+
+	t.Run("GetFullSingleStockPrice Valid request", func(t *testing.T) {
+		// act
+		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice(symbol)
+
+		// assert
+		assert.Nil(t, err)
+		assert.NotEmpty(t, fullPriceResponse)
+		assert.Equal(t, symbol, fullPriceResponse.Price.Symbol)
+		assert.NotZero(t, fullPriceResponse.Price.RegularMarketPrice)
+		assert.NotEmpty(t, fullPriceResponse.Price.Currency)
+		assert.NotZero(t, fullPriceResponse.Price.MarketCap)
+	})
+
+	t.Run("GetFullSingleStockPrice Invalid request with empty symbol", func(t *testing.T) {
+		// act
+		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice("")
+
+		// assert
+		assert.NotNil(t, err)
+		assert.Empty(t, fullPriceResponse)
+	})
+
+	t.Run("GetFullSingleStockPrice Invalid request with non-existent symbol", func(t *testing.T) {
+		// act
+		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice("INVALID_SYMBOL")
+
+		// assert
+		assert.NotNil(t, err)
+		assert.Empty(t, fullPriceResponse)
 	})
 }
 

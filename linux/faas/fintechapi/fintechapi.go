@@ -31,24 +31,46 @@ func NewStockAPI(logger *log.Logger) IStockAPI {
 
 // StockAPI defines the interface for stock price queries
 type IStockAPI interface {
-	GetSingleStockPrice(ticker string) (float32, error)
-	GetStocksPrice(tickersCSV string) (string, error)
+	GetSingleStockPriceNum(ticker string) (float32, error)
+	GetStocksPriceCSV(tickersCSV string) (string, error)
+	GetStocksFullPriceCSV(tickersCSV string) (string, error)
 }
 
 type StockAPI struct {
 	yahooApi YHFinanceCompleteAPI
 }
 
-func (s StockAPI) GetStocksPrice(tickersCSV string) (string, error) {
-	s.yahooApi.logger.Printf("StockAPI.GetStocksPrice stock prices for %s", tickersCSV)
+func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetStocksFullPriceCSV stock prices for %s", tickersCSV)
+
+	tickers := strings.Split(tickersCSV, ",")
+
+	result := ""
+	stockPriceFmt := ""
+
+	for _, ticker := range tickers {
+		resp, err := s.yahooApi.GetSingleStockFullPrice(strings.TrimSpace(ticker)); if err != nil {
+			return "", err
+		}
+
+		if resp.Price.RegularMarketChange < 0 { stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"} else { stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%)," }
+		stockInfo := fmt.Sprintf(stockPriceFmt, ticker, resp.Price.RegularMarketPrice, resp.Price.RegularMarketChange, resp.Price.RegularMarketChangePercent*100)
+		result += stockInfo
+	}
+
+	return result, nil
+}
+
+
+func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetStocksPriceCSV stock prices for %s", tickersCSV)
 
 	tickers := strings.Split(tickersCSV, ",")
 
 	result := ""
 
 	for _, ticker := range tickers {
-		resp, err := s.yahooApi.GetSingleStockPrice(ticker)
-		if err != nil {
+		resp, err := s.yahooApi.GetSingleStockPrice(strings.TrimSpace(ticker));	if err != nil {
 			return "", err
 		}
 		result += ticker + ":" + fmt.Sprintf("%.2f",resp.Price) + ","
@@ -57,8 +79,8 @@ func (s StockAPI) GetStocksPrice(tickersCSV string) (string, error) {
 	return result, nil
 }
 
-func (s StockAPI) GetSingleStockPrice(ticker string) (float32, error) {
-	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPrice stock prices for %s", ticker)
+func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPriceNum stock prices for %s", ticker)
 	resp, err := s.yahooApi.GetSingleStockPrice(ticker)
 	if err != nil {
 		return 0, err
