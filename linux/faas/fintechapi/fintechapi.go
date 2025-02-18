@@ -1,8 +1,9 @@
 package fintechapi
 
 import (
+	"fmt"
 	"log"
-	"os"
+	"strings"
 )
 
 // FintechAPI defines the interface for the fintech API
@@ -22,53 +23,45 @@ type Transaction struct {
 	Type      string
 }
 
+func NewStockAPI(logger *log.Logger) IStockAPI {
+	return StockAPI{
+		yahooApi: NewYHFinanceCompleteAPI(logger),
+	}
+}
+
 // StockAPI defines the interface for stock price queries
 type IStockAPI interface {
-	GetStockPrice(ticker string) (float32, error)
+	GetSingleStockPrice(ticker string) (float32, error)
+	GetStocksPrice(tickersCSV string) (string, error)
 }
 
 type StockAPI struct {
+	yahooApi YHFinanceCompleteAPI
 }
 
-func (s StockAPI) GetStockPrice(ticker string) (float32, error) {
-	api := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+func (s StockAPI) GetStocksPrice(tickersCSV string) (string, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetStocksPrice stock prices for %s", tickersCSV)
 
-	resp, err := api.GetStockPrice(ticker)
+	tickers := strings.Split(tickersCSV, ",")
+
+	result := ""
+
+	for _, ticker := range tickers {
+		resp, err := s.yahooApi.GetSingleStockPrice(ticker)
+		if err != nil {
+			return "", err
+		}
+		result += ticker + ":" + fmt.Sprintf("%.2f",resp.Price) + ","
+	}
+
+	return result, nil
+}
+
+func (s StockAPI) GetSingleStockPrice(ticker string) (float32, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPrice stock prices for %s", ticker)
+	resp, err := s.yahooApi.GetSingleStockPrice(ticker)
 	if err != nil {
 		return 0, err
 	}
-
 	return resp.Price, nil
-}
-
-// RPCServer defines the server for handling RPC calls
-type RPCServer struct {
-	stockAPI IStockAPI
-}
-
-// NewRPCServer creates a new RPC server
-func NewRPCServer(stockAPI IStockAPI) *RPCServer {
-	return &RPCServer{stockAPI: stockAPI}
-}
-
-// GetStockPriceRequest represents the request for getting stock price
-type GetStockPriceRequest struct {
-	Ticker string
-}
-
-// GetStockPriceResponse represents the response for getting stock price
-type GetStockPriceResponse struct {
-	Price float32
-	Error string
-}
-
-// GetStockPrice handles the RPC call to get stock price
-func (s *RPCServer) GetStockPrice(req GetStockPriceRequest, res *GetStockPriceResponse) error {
-	price, err := s.stockAPI.GetStockPrice(req.Ticker)
-	if err != nil {
-		res.Error = err.Error()
-		return err
-	}
-	res.Price = price
-	return nil
 }

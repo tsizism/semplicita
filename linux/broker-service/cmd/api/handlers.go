@@ -80,7 +80,8 @@ func (appCtx *applicationContext) handleSubmission(w http.ResponseWriter, r *htt
 	case "trace":
 		requestPayload.Trace.Via = "RPC"
 		// appCtx.logEventRPC(w, requestPayload.Trace)
-		appCtx.getStockPrice(w)
+		//appCtx.getSingleStockPrice(w)
+		appCtx.getStocksPrice(w)
 	case "traceMq":
 		requestPayload.Trace.Via = "MQ"
 		appCtx.logEventMQ(w, requestPayload.Trace)
@@ -107,13 +108,13 @@ func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, tracePayloa
 		return
 	}
 
-	rpcPayload := RPCPayload {
-		Src: tracePayload.Src,
-		Via: tracePayload.Via,
+	rpcPayload := RPCPayload{
+		Src:  tracePayload.Src,
+		Via:  tracePayload.Via,
 		Data: tracePayload.Data,
 	}
-	
-	var result string 
+
+	var result string
 	err = client.Call("RPCServer.InsertTraceEvent", rpcPayload, &result)
 
 	if err != nil {
@@ -129,38 +130,39 @@ func (appCtx *applicationContext) logEventRPC(w http.ResponseWriter, tracePayloa
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
 
-func (appCtx *applicationContext) getStockPrice(w http.ResponseWriter) {
+func (appCtx *applicationContext) getSingleStockPrice(w http.ResponseWriter) {
 	ticker := "AAPL"
-	appCtx.logger.Printf("getStockPrice: payload=%+v", ticker)
-	client, err := rpc.Dial("tcp", "localhost:5003")  // faas-service:5003
+	appCtx.logger.Printf("getSingleStockPrice: payload=%+v", ticker)
+	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
 
 	if err != nil {
 		shared.ErrorJSON(w, err)
 		return
 	}
 
-	type GetStockPriceRequest struct {
+	type GetSingleStockPriceRequest struct {
 		Ticker string
 	}
-	
-	// GetStockPriceResponse represents the response for getting stock price
-	type GetStockPriceResponse struct {
+
+	// GetSingleStockPriceResponse represents the response for getting stock price
+	type GetSingleStockPriceResponse struct {
 		Price float32
 		Error string
 	}
-		
-	rpcPayload := GetStockPriceRequest {
+
+	rpcPayload := GetSingleStockPriceRequest{
 		Ticker: ticker,
 	}
 
-	var result GetStockPriceResponse 
-	err = client.Call("RPCServer.GetStockPrice", rpcPayload, &result);	if err != nil {
-		appCtx.logger.Printf("getStockPrice: Failed to call RPC %s", err)
+	var result GetSingleStockPriceResponse
+	err = client.Call("RPCServer.GetSingleStockPrice", rpcPayload, &result)
+	if err != nil {
+		appCtx.logger.Printf("GetSingleStockPrice: Failed to call RPC %s", err)
 		shared.ErrorJSON(w, err)
 		return
 	}
 
-	appCtx.logger.Printf("getStockPrice: result=%+v", result)
+	appCtx.logger.Printf("getStockPrice for%s: result=%+v", ticker, result)
 
 	payload := shared.JsonResponse{
 		Error:   false,
@@ -170,11 +172,44 @@ func (appCtx *applicationContext) getStockPrice(w http.ResponseWriter) {
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
 
+func (appCtx *applicationContext) getStocksPrice(w http.ResponseWriter) {
+	tickers := "BCE.TO,BCE"
+	appCtx.logger.Printf("getStocksPrice: payload=%+v", tickers)
+	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
+
+	if err != nil {
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	type GetStocksPriceReqResp struct {
+		TickerPriceCSV string
+		Error string
+	}
+
+	var result, rpcPayload GetStocksPriceReqResp
+	rpcPayload.TickerPriceCSV = tickers
+	
+	err = client.Call("RPCServer.GetStocksPrice", rpcPayload, &result);	if err != nil {
+		appCtx.logger.Printf("GetSingleStockPrice: Failed to call RPC %s", err)
+		shared.ErrorJSON(w, err)
+		return
+	}
+
+	appCtx.logger.Printf("GetStocksPrice for%s: result=%+v", tickers, result)
+
+	payload := shared.JsonResponse{
+		Error:   false,
+		Message: fmt.Sprintf("TickerPriceCSV: %s", result.TickerPriceCSV),
+	}
+
+	shared.WriteJSON(w, http.StatusAccepted, payload)
+}
 
 func (appCtx *applicationContext) traceGRPC(w http.ResponseWriter, r *http.Request) {
 	var requestPayload RequestPayload
 
-	err := shared.ReadJSON(w,r, &requestPayload)
+	err := shared.ReadJSON(w, r, &requestPayload)
 
 	if err != nil {
 		shared.ErrorJSON(w, err)
@@ -183,44 +218,41 @@ func (appCtx *applicationContext) traceGRPC(w http.ResponseWriter, r *http.Reque
 
 	appCtx.logger.Printf("traceGRPC: requestPayload=%+v", requestPayload)
 
-
-	gprsCh, err := grpc.NewClient(fmt.Sprintf("trace-service:%d", appCtx.cfg.gRPCPort), grpc.WithTransportCredentials(insecure.NewCredentials()))  //, grpc.WithBlock())
+	gprsCh, err := grpc.NewClient(fmt.Sprintf("trace-service:%d", appCtx.cfg.gRPCPort), grpc.WithTransportCredentials(insecure.NewCredentials())) //, grpc.WithBlock())
 
 	if err != nil {
 		appCtx.logger.Println("traceGRPC: Failed NewClient")
-	 	shared.ErrorJSON(w, err)
-	 	return
+		shared.ErrorJSON(w, err)
+		return
 	}
 
 	defer gprsCh.Close()
 
-
 	serviceClient := trace.NewTraceServiceClient(gprsCh)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second )
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 
 	defer cancel()
 
 	resp, err := serviceClient.TraceEvent(ctx, &trace.TraceRequest{
-		TraceEntry: &trace.Trace {Src: requestPayload.Trace.Src, Data:requestPayload.Trace.Data},
+		TraceEntry: &trace.Trace{Src: requestPayload.Trace.Src, Data: requestPayload.Trace.Data},
 	})
 
 	if err != nil {
 		appCtx.logger.Println("traceGRPC: Failed TraceEvent")
-	 	shared.ErrorJSON(w, err)
-	 	return
+		shared.ErrorJSON(w, err)
+		return
 	}
 
 	appCtx.logger.Printf("traceGRPC: TraceEvent=%+v", resp)
 
 	payload := shared.JsonResponse{
-	 	Error:   false,
-	 	Message: "Logged trace via gRPC",
+		Error:   false,
+		Message: "Logged trace via gRPC",
 	}
 
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
-
 
 func (appCtx *applicationContext) logEventMQ(w http.ResponseWriter, t TracePayload) {
 	appCtx.logger.Printf("logEventMQ: payload=%+v", t)
@@ -238,8 +270,6 @@ func (appCtx *applicationContext) logEventMQ(w http.ResponseWriter, t TracePaylo
 
 	shared.WriteJSON(w, http.StatusAccepted, payload)
 }
-
-
 
 func (appCtx *applicationContext) traceEvent(w http.ResponseWriter, t TracePayload) {
 	appCtx.logger.Printf("traceEvent: payload=%+v", t)

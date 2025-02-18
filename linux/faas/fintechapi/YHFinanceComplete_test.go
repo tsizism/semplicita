@@ -11,7 +11,7 @@ import (
 )
 
 // go test .\fintechapi\. -v
-// go test YHFinanceCompleteAPI_test.go .\YHFinanceCompleteAPI.go  -v
+//go test YHFinanceComplete_test.go YHFinanceComplete.go .\YHFinanceResponse.go   -v 
 
 // func buildRequest(t *testing.T) {
 // 	ticker, sdate, edate := "TSLA", "2025-02-10", "2025-02-10"
@@ -23,6 +23,21 @@ import (
 //		// assert.NotNil(t, req)
 //		// assert.Nil(t, err)
 //	}
+
+// util_weekStartDate calculates the start date of the week for a given date.
+// The start of the week is considered to be Monday.
+//
+// Parameters:
+//   - date: The input date for which the start of the week is to be calculated.
+//
+// Returns:
+//   - time.Time: The start date of the week (Monday) for the given date.
+func util_weekStartDate(date time.Time) time.Time {
+	offset := (int(time.Monday) - int(date.Weekday()) - 7) % 7
+	result := date.Add(time.Duration(offset*24) * time.Hour)
+	return result
+}
+
 func util_getTestWeekStartAndEndDates() (string, string) {
 	// const daysBack = 2
 	// sdate := time.Now().AddDate(0,0,(-1 * (daysBack+3))).Format("2006-01-02")
@@ -34,7 +49,7 @@ func util_getTestWeekStartAndEndDates() (string, string) {
 	currentLocation := now.Location()
 
 	firstOfMonth := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, currentLocation)
-	weekStart := weekStartDate(firstOfMonth)
+	weekStart := util_weekStartDate(firstOfMonth)
 	weekEnd := weekStart.AddDate(0, 0, 5)
 
 	sdate := weekStart.Format("2006-01-02")
@@ -47,7 +62,7 @@ func util_getTestWeekStartAndEndDates() (string, string) {
 func TestWeekStartDate(t *testing.T) {
 	date := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := 0; i < 7; i++ {
-		weekStart := weekStartDate(date)
+		weekStart := util_weekStartDate(date)
 		// fmt.Printf("%s %s\n", date.Format("2006-01-02 Mon"), weekStart.Format("2006-01-02 Mon"))
 		assert.NotNil(t, weekStart)
 		assert.Equal(t, time.Monday, weekStart.Weekday())
@@ -55,7 +70,7 @@ func TestWeekStartDate(t *testing.T) {
 	}
 	date = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := 0; i < 7; i++ {
-		weekStart := weekStartDate(date)
+		weekStart := util_weekStartDate(date)
 		// fmt.Printf("%s %s\n", date.Format("2006-01-02 Mon"), weekStart.Format("2006-01-02 Mon"))
 		assert.NotNil(t, weekStart)
 		assert.Equal(t, time.Monday, weekStart.Weekday())
@@ -64,17 +79,17 @@ func TestWeekStartDate(t *testing.T) {
 }
 
 func Test_GetHistoricalWithUnmarshal(t *testing.T) {
-	api := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+	yahooApi := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
 	ticker := "BCE.TO"
 	sdate, edate := util_getTestWeekStartAndEndDates()
-	fname := fmt.Sprintf(api.cacheFileNameFmt, ticker, sdate)
+	fname := fmt.Sprintf(yahooApi.cacheFileNameFmt, ticker, sdate)
 
 	t.Run("GetHistoricalWithUnmarshal BCE.TO Valid request without existing file", func(t *testing.T) {
 		// arrange
 		os.Remove(fname)
 
 		// act
-		jsonMapArr, err := api.GetHistoricalWithUnmarshal(ticker, sdate, edate)
+		jsonMapArr, err := yahooApi.GetHistoricalWithUnmarshal(ticker, sdate, edate)
 
 		// assert
 		assert.Nil(t, err)
@@ -92,7 +107,7 @@ func Test_GetHistoricalWithUnmarshal(t *testing.T) {
 		defer os.Remove(fname)
 
 		// act
-		jsonMapArr, err := api.GetHistoricalWithUnmarshal(ticker, sdate, edate)
+		jsonMapArr, err := yahooApi.GetHistoricalWithUnmarshal(ticker, sdate, edate)
 
 		// assert
 		assert.Nil(t, err)
@@ -107,7 +122,7 @@ func Test_GetHistoricalWithUnmarshal(t *testing.T) {
 		sdate, edate := "1900-01-01", "1900-01-01"
 
 		// act
-		jsonMapArr, err := api.GetHistoricalWithUnmarshal(ticker, sdate, edate)
+		jsonMapArr, err := yahooApi.GetHistoricalWithUnmarshal(ticker, sdate, edate)
 
 		// assert
 		assert.NotNil(t, err)
@@ -117,14 +132,14 @@ func Test_GetHistoricalWithUnmarshal(t *testing.T) {
 
 func Test_GetHistoricalWithDecode(t *testing.T) {
 	// arrange
-	api := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+	yahooApi := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
 	ticker := "BCE.TO"
 	sdate, edate := util_getTestWeekStartAndEndDates()
 	// fname := fmt.Sprintf(api.cacheFileNameFmt, ticker, sdate)
 
 	t.Run("GetHistoricalWithDecode BCE.TO Valid request without existing file", func(t *testing.T) {
 		// act
-		jsonMapArr, err := api.GetHistoricalWithUnmarshal(ticker, sdate, edate)
+		jsonMapArr, err := yahooApi.GetHistoricalWithUnmarshal(ticker, sdate, edate)
 
 		// assert
 		assert.Nil(t, err)
@@ -140,7 +155,7 @@ func Test_GetHistoricalWithDecode(t *testing.T) {
 		sdate, edate := "1900-01-01", "1900-01-01"
 
 		// act
-		jsonMapArr, err := api.GetHistoricalWitDecode(ticker, sdate, edate)
+		jsonMapArr, err := yahooApi.GetHistoricalWitDecode(ticker, sdate, edate)
 
 		// assert
 		assert.NotNil(t, err)
@@ -148,13 +163,13 @@ func Test_GetHistoricalWithDecode(t *testing.T) {
 	})
 }
 
-func Test_GetStockPrice(t *testing.T) {
-	api := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+func Test_GetSingleStockPrice(t *testing.T) {
+	yahooApi := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
 	ticker := "BCE.TO"
 
-	t.Run("GetStockPrice Valid request", func(t *testing.T) {
+	t.Run("GetSingleStockPrice Valid request", func(t *testing.T) {
 		// act
-		priceResponse, err := api.GetStockPrice(ticker)
+		priceResponse, err := yahooApi.GetSingleStockPrice(ticker)
 
 		// assert
 		assert.Nil(t, err)
@@ -165,18 +180,18 @@ func Test_GetStockPrice(t *testing.T) {
 		assert.NotZero(t, priceResponse.MarketCap)
 	})
 
-	t.Run("GetStockPrice Invalid request with empty ticker", func(t *testing.T) {
+	t.Run("GetSingleStockPrice Invalid request with empty ticker", func(t *testing.T) {
 		// act
-		priceResponse, err := api.GetStockPrice("")
+		priceResponse, err := yahooApi.GetSingleStockPrice("")
 
 		// assert
 		assert.NotNil(t, err)
 		assert.Empty(t, priceResponse)
 	})
 
-	t.Run("GetStockPrice Invalid request with non-existent ticker", func(t *testing.T) {
+	t.Run("GetSingleStockPrice Invalid request with non-existent ticker", func(t *testing.T) {
 		// act
-		priceResponse, err := api.GetStockPrice("INVALID_TICKER")
+		priceResponse, err := yahooApi.GetSingleStockPrice("INVALID_TICKER")
 
 		// assert
 		assert.NotNil(t, err)
@@ -185,12 +200,12 @@ func Test_GetStockPrice(t *testing.T) {
 }
 
 func Test_GetStockSummaryDetail(t *testing.T) {
-	api := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
+	yahooApi := NewYHFinanceCompleteAPI(log.New(os.Stdout, "", log.Ltime))
 	ticker := "BCE.TO"
 
 	t.Run("GetStockSummaryDetail Valid request", func(t *testing.T) {
 		// act
-		summaryResponse, err := api.GetStockSummaryDetail(ticker)
+		summaryResponse, err := yahooApi.GetStockSummaryDetail(ticker)
 
 		// assert
 		assert.Nil(t, err)
@@ -203,7 +218,7 @@ func Test_GetStockSummaryDetail(t *testing.T) {
 
 	t.Run("GetStockSummaryDetail Invalid request with empty ticker", func(t *testing.T) {
 		// act
-		summaryResponse, err := api.GetStockSummaryDetail("")
+		summaryResponse, err := yahooApi.GetStockSummaryDetail("")
 
 		// assert
 		assert.NotNil(t, err)
@@ -212,7 +227,7 @@ func Test_GetStockSummaryDetail(t *testing.T) {
 
 	t.Run("GetStockSummaryDetail Invalid request with non-existent ticker", func(t *testing.T) {
 		// act
-		summaryResponse, err := api.GetStockSummaryDetail("INVALID_TICKER")
+		summaryResponse, err := yahooApi.GetStockSummaryDetail("INVALID_TICKER")
 
 		// assert
 		assert.NotNil(t, err)

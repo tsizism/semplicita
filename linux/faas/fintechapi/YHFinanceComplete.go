@@ -27,14 +27,6 @@ type YHFinanceCompleteAPI struct {
 	cacheFileNameFmt string
 }
 
-// weekStartDate calculates the start date of the week for a given date.
-// The start of the week is considered to be Monday.
-//
-// Parameters:
-//   - date: The date for which the start of the week is to be calculated.
-//
-// Returns:
-//   - time.Time: The start date of the week (Monday) for the given date.
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	return YHFinanceCompleteAPI{
 		urlDomain:        UrlDomain_YHFinanceCompleteAPI,
@@ -44,6 +36,7 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 		cacheFileNameFmt: "%s.%s.json",
 	}
 }
+
 
 // buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
 // It takes a sub-directory path and query parameters as inputs and returns
@@ -200,7 +193,7 @@ func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate stri
 	return jsonMapArr, nil
 }
 
-// GetStockPrice retrieves the stock price for the given ticker symbol.
+// GetSingleStockPrice retrieves the stock price for the given ticker symbol.
 // It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
 //
 // Parameters:
@@ -216,8 +209,8 @@ func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate stri
 //   - Returns an error if the HTTP request fails.
 //   - Returns an error if the response cannot be decoded.
 //   - Returns an error if the symbol in the response is empty.
-func (api YHFinanceCompleteAPI) GetStockPrice(ticker string) (YfpriceResponse, error) {
-	api.logger.Println("GetStockPrice: ticker=", ticker)
+func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceResponse, error) {
+	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
 	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
 
 	var jsonResponse YfpriceResponse
