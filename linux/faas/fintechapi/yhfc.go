@@ -37,6 +37,7 @@ type YHFinanceCompleteAPI struct {
 	apiKey           string
 	apiHost          string
 	cacheFileNameFmt string
+	requestCache     map[string]*http.Request
 }
 
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
@@ -51,6 +52,7 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 		apiKey:           string(apiKey_YHFinanceCompleteAPI),
 		logger:           log.New(os.Stdout, "", log.Ltime),
 		cacheFileNameFmt: "%s.%s.json",
+		requestCache: make(map[string]*http.Request), 
 	}
 }
 
@@ -75,25 +77,37 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
 	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
 
+	var request *http.Request
+	exists := false
+	request, exists = api.requestCache[subDir]
+
+	if !exists {
+		var err error
+		request, err = http.NewRequest("GET", "", nil); if err != nil {
+			return nil, fmt.Errorf("http.NewRequest error: %w", err)
+		}
+
+		api.requestCache[subDir] = request
+		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)		
+
+		fmt.Printf("request=%+v\n", request)
+
+		request.Header.Add("x-rapidapi-host", api.apiHost)
+		request.Header.Add("x-rapidapi-key",  api.apiKey)
+	}
+
 	requestUrl := fmt.Sprintf("%s/%s?", api.urlDomain, subDir)
 	requestUrl += queryParams.Encode()
 
 	api.logger.Printf("buildRequest: requestUrl=%s\n", requestUrl)
 
-	req, err := http.NewRequest("GET", requestUrl, nil)
+	var err error
+	request.URL, err = url.Parse(requestUrl)
+	// api.logger.Printf("buildRequest -------------->: request=%+v\n", request)
 	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest error: %w", err)
+		return nil, fmt.Errorf("url.Parse error: %w", err)
 	}
-
-	fmt.Printf("req=%+v\n", req)
-
-	// req.Header.Add("x-rapidapi-host", "yh-finance-complete.p.rapidapi.com")
-	// req.Header.Add("x-rapidapi-key", "")
-
-	req.Header.Add("x-rapidapi-host", api.apiHost)
-	req.Header.Add("x-rapidapi-key", api.apiKey)
-
-	return req, nil
+	return request, nil
 }
 
 
