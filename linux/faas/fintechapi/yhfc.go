@@ -5,7 +5,6 @@ package fintechapi
 // https://rapidapi.com/
 // Basic $9.99 - 14,986 / Month
 
-
 import (
 	"encoding/json"
 	"fmt"
@@ -14,21 +13,20 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
-// export YHFINCOMPLETE_APIKEY_FN=~/yhfincomplete_apikey.txt
+// export YHFINCOMPLETE_APIKEY_FN=~/github/yhfincomplete_apikey.txt
 // echo $YHFINCOMPLETE_APIKEY_FN
 // $env:YHFINCOMPLETE_APIKEY_FN="C:\github\yhfincomplete_apikey.txt"
 // $env:YHFINCOMPLETE_APIKEY_FN
 // set YHFINCOMPLETE_APIKEY_FN="C:\github\yhfincomplete_apikey.txt"
 // echo %BROKER_URL%
 
-
 const (
-	UrlDomain_YHFinanceCompleteAPI 	= "https://yh-finance-complete.p.rapidapi.com"
-	ApiHost_YHFinanceCompleteAPI   	= "yh-finance-complete.p.rapidapi.com"
-	ApiHost_ENVVAR		   			= "YHFINCOMPLETE_APIKEY_FN"
-
+	UrlDomain_YHFinanceCompleteAPI = "https://yh-finance-complete.p.rapidapi.com"
+	ApiHost_YHFinanceCompleteAPI   = "yh-finance-complete.p.rapidapi.com"
+	ApiHost_ENVVAR                 = "YHFINCOMPLETE_APIKEY_FN"
 )
 
 type YHFinanceCompleteAPI struct {
@@ -42,20 +40,21 @@ type YHFinanceCompleteAPI struct {
 
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	fn := os.Getenv(ApiHost_ENVVAR)
-	apiKey_YHFinanceCompleteAPI, err := os.ReadFile(fn); if err != nil {
+	apiKey_YHFinanceCompleteAPI, err := os.ReadFile(fn)
+	if err != nil {
 		log.Fatalf("os.ReadFile error: %v defined by envvar %s", err, ApiHost_ENVVAR)
 	}
+	println("--------------------->" + string(apiKey_YHFinanceCompleteAPI))
 
 	return YHFinanceCompleteAPI{
 		urlDomain:        UrlDomain_YHFinanceCompleteAPI,
 		apiHost:          ApiHost_YHFinanceCompleteAPI,
-		apiKey:           string(apiKey_YHFinanceCompleteAPI),
+		apiKey:           strings.TrimSpace(string(apiKey_YHFinanceCompleteAPI)),
 		logger:           log.New(os.Stdout, "", log.Ltime),
 		cacheFileNameFmt: "%s.%s.json",
-		requestCache: make(map[string]*http.Request), 
+		requestCache:     make(map[string]*http.Request),
 	}
 }
-
 
 // buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
 // It takes a sub-directory path and query parameters as inputs and returns
@@ -83,17 +82,20 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 
 	if !exists {
 		var err error
-		request, err = http.NewRequest("GET", "", nil); if err != nil {
+		request, err = http.NewRequest("GET", "", nil)
+		if err != nil {
 			return nil, fmt.Errorf("http.NewRequest error: %w", err)
 		}
 
 		api.requestCache[subDir] = request
-		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)		
+		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)
 
 		fmt.Printf("request=%+v\n", request)
 
 		request.Header.Add("x-rapidapi-host", api.apiHost)
-		request.Header.Add("x-rapidapi-key",  api.apiKey)
+		request.Header.Add("x-rapidapi-key", api.apiKey)
+		api.logger.Printf("x-rapidapi-key='%s'\n", api.apiKey)
+
 	}
 
 	requestUrl := fmt.Sprintf("%s/%s?", api.urlDomain, subDir)
@@ -109,8 +111,6 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	}
 	return request, nil
 }
-
-
 
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
 // It sends a request to the YH Finance Complete API and decodes the JSON response into a YffullstockpriceResponse struct.
@@ -143,13 +143,15 @@ func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (Yffullst
 
 	queryParams := url.Values{"symbol": {symbol}}
 
-	req, err := api.buildRequest("price", queryParams); if err != nil {
+	req, err := api.buildRequest("price", queryParams)
+	if err != nil {
 		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
 	}
 
 	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
 
-	res, err := http.DefaultClient.Do(req);	if err != nil {
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
 		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
 	}
 
@@ -222,7 +224,6 @@ func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceRespo
 
 	return jsonResponse, nil
 }
-
 
 // GetHistoricalWithUnmarshal retrieves historical financial data for a given ticker symbol
 // between the specified start date (sdate) and end date (edate). It first attempts to read
@@ -337,7 +338,6 @@ func (api YHFinanceCompleteAPI) GetHistoricalWitDecode(ticker, sdate, edate stri
 
 	return jsonMapArr, nil
 }
-
 
 // GetStockSummaryDetail retrieves the stock summary details for a given ticker symbol.
 // It sends a request to the YH Finance Complete API and decodes the response into a YfResponse struct.

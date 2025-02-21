@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -64,9 +66,16 @@ func util_getTestWeekStartAndEndDates() (string, string) {
 //func setupSuite(tb testing.TB) func(tb testing.TB) {
 
 func init() {
-	log.Println("setup suite")
+	root := "C:\\github\\yhfincomplete_apikey.txt"
+	if runtime.GOOS == "darwin" {
+		root = "/Users/mark/github/"
+	}
 
-	os.Setenv("YHFINCOMPLETE_APIKEY_FN", "C:\\github\\yhfincomplete_apikey.txt")
+	path := filepath.Join(root, "yhfincomplete_apikey.txt")
+	log.Println("setup suite for " + runtime.GOOS + " " + path)
+
+	//os.Setenv("YHFINCOMPLETE_APIKEY_FN", "C:\\github\\yhfincomplete_apikey.txt")
+	os.Setenv("YHFINCOMPLETE_APIKEY_FN", path)
 }
 
 func TestWeekStartDate(t *testing.T) {
