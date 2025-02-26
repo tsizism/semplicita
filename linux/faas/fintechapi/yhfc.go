@@ -77,15 +77,14 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
 
 	var request *http.Request
-	exists := false
-	request, exists = api.requestCache[subDir]
-
-	if !exists {
+	var exists bool
+	if request, exists = api.requestCache[subDir]; !exists {
 		var err error
 		request, err = http.NewRequest("GET", "", nil)
 		if err != nil {
 			return nil, fmt.Errorf("http.NewRequest error: %w", err)
 		}
+		
 
 		api.requestCache[subDir] = request
 		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)

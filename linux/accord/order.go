@@ -8,6 +8,11 @@ type order struct {
 	Status      orderStatus
 }
 
+type invalidOrder struct {
+	Order order
+	Err   error
+}
+
 type orderStatus int
 
 const (
@@ -20,7 +25,7 @@ const (
 
 // To string
 func (o order) String() string {
-	return fmt.Sprintf("Product code %v, Quantity %v, Status %v\n", o.ProductCode, o.Quantity, orderStatusToText(o.Status))
+	return fmt.Sprintf("Product code %v, Quantity %v, Status %v", o.ProductCode, o.Quantity, orderStatusToText(o.Status))
 }
 
 func orderStatusToText(o orderStatus) string {
