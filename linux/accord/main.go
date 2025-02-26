@@ -39,87 +39,122 @@ func bufChannel() {
 
 func orderMgmt() {
 	var wg sync.WaitGroup
-	// var receivedOrdercCh = make(chan order)
-	// var validateOrdercCh = make(chan order)
-	// var invalidOrdercCh = make(chan invalidOrder)
 
-	// go receiveOrders(receivedOrdercCh)
+	// workflow
+	// producer
 	receivedOrdercCh := receiveOrders() // ro <-chan order
+
+	// consumer-producer
 	validateOrdercCh, invalidOrdercCh := validateOrders(receivedOrdercCh) // ro chan oreder, ro chan invalidOrder	
+	
+	// multi-consumer-producer
 	reserveInventoryCh := reserveInventory(validateOrdercCh) // ro <-chan order
 
+	wg.Add(1)
+	// consumer
+	fillOrders(reserveInventoryCh, &wg)
+	// fillOrdersCh := fillOrders(reserveInventoryCh)
+	
 
-	wg.Add(2)
 
+
+	// drain invalidOrderCh
 	go func(invalidOrderCh <-chan invalidOrder) {
-
 		for order := range invalidOrderCh{
 			fmt.Printf("Invalid Order Received: %v, err=%v\n", order.Order, order.Err)
 		}
 		wg.Done()
 	}(invalidOrdercCh) 
 
-	go func(reservedInventoryCh <-chan order) {
-		for order := range reservedInventoryCh {
-			fmt.Printf("Inventory reserved for: %v\n", order)
-		}
-		wg.Done()
-	}(reserveInventoryCh) 
-	
-
-	// go func(validOrderCh <-chan order, invalidOrderCh <-chan invalidOrder) { // inCh rcv from channel
-	// 	loop : for{
-	// 		select {
-	// 		case order, ok := <-validOrderCh:
-	// 			if ok {
-	// 				fmt.Printf("Valid Order Received: %v\n", order)
-	// 			} else {
-	// 				break loop
-	// 			}
-
-	// 		case order, ok := <-invalidOrderCh:
-	// 			if ok { 
-	// 				fmt.Printf("Invalid Order Received: %v, err=%v\n", order.Order, order.Err)
-	// 			} else {
-	// 				break loop
-	// 			}
-	// 		// default:
-	// 		// 	println(`default`)
-	// 	}
+	// drain the last workflow fillOrdersCh, pass ro channel
+	// const workers = 3
+	// wg.Add(workers)
+	// for i := 0; i < workers; i++ {
+	// 	go func(fillOrdersCh <-chan order) {
+	// 		fmt.Printf("Start drain worker %d\n", i)
+	// 		for order := range fillOrdersCh {
+	// 			fmt.Printf("Filled order %v dw=%d\n", order, i)
+	// 		}
+	// 		defer fmt.Printf("Stop drain worker %d\n", i)
+	// 		wg.Done()
+	// 	}(fillOrdersCh)
 	// }
-	// }(validateOrdercCh, invalidOrdercCh)
-
-	// go func(inCh <-chan order) { // rcv from ch
-	// 	// order := <- validateOrdercCh
-	// 	order := <- inCh
-	// 	fmt.Printf("Valid Order Received: %v\n", order)
-	// 	wg.Done()
-	// }(validateOrdercCh)
-
-	// go func(inCh <-chan invalidOrder) {
-	// 	invalidOrder := <- inCh // rcv from ch
-	// 	// invalidOrder := <- invalidOrdercCh
-	// 	fmt.Printf("Invalid Order Received: %v, err=%v\n", invalidOrder.Order, invalidOrder.Err)
-	// 	wg.Done()
-	// }(invalidOrdercCh)
 
 	wg.Wait()
 	fmt.Println("Done!")
 
 }
 
-func reserveInventory(validOrdersInCh <-chan order) <-chan order {
-	chOut := make(chan order)
+// mutiple consumers
+func fillOrders(fillOrdersInCh <-chan order, wg* sync.WaitGroup) { //<-chan order{
+	// fillOrdersOutCh := make(chan order)
 
-	go func() {
-		for o := range validOrdersInCh {
-			o.Status = reserved
-			chOut <- o	
-		}
-		close(chOut)
+	const workers = 3
+	wg.Add(workers)
+	for i:=0; i < workers; i++ {
+		go func() { // spawn anonymus goroutine to change order status
+			for order := range fillOrdersInCh {
+				order.Status = filled
+				fmt.Printf("Filled order %v workerId=%d\n", order, i)
+				// fillOrdersOutCh <- order
+			}
+			// No more downstream workers dependant on this channel
+			//close(fillOrdersOutCh)
+			wg.Done()
+		}()
+	}
+
+	// return fillOrdersOutCh 
+}
+
+// multiple producers - sends to 3 goroutines
+func reserveInventory(reserveInventoryInCh <-chan order) <-chan order {
+	reserveInventoryOutCh := make(chan order)
+
+	const workers = 3
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	
+	for i:= 0; i < workers; i++ {
+		go func() { // spawn anonymus goroutine to change order status
+			for o := range reserveInventoryInCh {
+				o.Status = reserved
+				reserveInventoryOutCh <- o	
+			}
+			wg.Done()
+			// close(reserveInventoryOutCh)
+		}()
+	}
+	
+	go func() { // spawn anonymus goroutine to close out ch
+		wg.Wait()
+		close(reserveInventoryOutCh)
 	}()
 
-	return chOut
+	return reserveInventoryOutCh
+}
+
+
+func validateOrders(validateOrdersInCh <-chan order)  (<-chan order, <-chan invalidOrder) {
+	outCh := make(chan order)
+	errCh := make(chan invalidOrder, 1)
+
+	go func () {
+		for order := range validateOrdersInCh {
+			if order.Quantity <= 0 {
+				errCh <- invalidOrder{Order: order, Err: errors.New("invalid negavtive order quantity")}
+				// errCh <- invalidOrder { Order: order, Err: fmt.Errorf("invalid order quantity %f", order.Quantity) }
+			} else {
+				// fmt.Printf("Valid order  %v\n", order)
+				outCh <- order // outCh snd to ch
+			}
+		}
+		close(outCh)
+		close(errCh)
+	}()
+
+	return outCh, errCh // as ro channel
+
 }
 
 func receiveOrders() <-chan order {  // return ro chan
@@ -144,66 +179,3 @@ func receiveOrders() <-chan order {  // return ro chan
 
 	return outCh // returm as ro
 }
-
-func validateOrders(inCh <-chan order)  (<-chan order, <-chan invalidOrder) {
-	// order := <- inCh // inCh rcv from ch
-
-	outCh := make(chan order)
-	errCh := make(chan invalidOrder, 1)
-
-	go func () {
-		for order := range inCh {
-			if order.Quantity <= 0 {
-				errCh <- invalidOrder{Order: order, Err: errors.New("invalid negavtive order quantity")}
-				// errCh <- invalidOrder { Order: order, Err: fmt.Errorf("invalid order quantity %f", order.Quantity) }
-			} else {
-				// fmt.Printf("Valid order  %v\n", order)
-				outCh <- order // outCh snd to ch
-			}
-		}
-		close(outCh)
-		close(errCh)
-	}()
-
-	return outCh, errCh // as ro channel
-
-}
-
-
-
-// // <-chan order ro
-// func validateOrders(inCh <-chan order, outCh chan<- order, errCh chan<- invalidOrder) {
-// 	// order := <- inCh // inCh rcv from ch
-
-// 	for order := range inCh {
-// 		if order.Quantity <= 0 {
-// 			errCh <- invalidOrder{Order: order, Err: errors.New("invalid negavtive order quantity")}
-// 			// errCh <- invalidOrder { Order: order, Err: fmt.Errorf("invalid order quantity %f", order.Quantity) }
-// 		} else {
-// 			// fmt.Printf("Valid order  %v\n", order)
-// 			outCh <- order // outCh snd to ch
-// 		}
-// 	}
-// 	close(outCh)
-// 	close(errCh)
-// }
-
-
-
-
-// func receiveOrders(outCh chan<- order) {
-// 	for _, rawOrder := range rawOrders {
-// 		var newOrder order
-
-// 		err := json.Unmarshal([]byte(rawOrder), &newOrder)
-
-// 		if err != nil {
-// 			log.Println(err)
-// 			continue
-// 		}
-// 		// fmt.Printf("Receiving new order %v\n", newOrder)
-// 		//orders = append(orders, newOrder)
-// 		outCh <- newOrder
-// 	}
-// 	close(outCh)
-// }
