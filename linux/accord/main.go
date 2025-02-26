@@ -10,9 +10,9 @@ import (
 
 var rawOrders = []string{
 	`{"productCode":1111, "quantity": 5, 	"status": 0}`,
-	`{"productCode":2222, "quantity": 42.3, "status": 1}`,
-	`{"productCode":3333, "quantity": 19, 	"status": 2}`,
-	`{"productCode":4444, "quantity": 8, 	"status": 3}`,
+	`{"productCode":2222, "quantity": -42.3, "status": 0}`,
+	`{"productCode":3333, "quantity": 19, 	"status": 0}`,
+	`{"productCode":4444, "quantity": 8, 	"status": 0}`,
 }
 
 // var orders = []order{}
@@ -43,37 +43,51 @@ func orderMgmt() {
 	// var validateOrdercCh = make(chan order)
 	// var invalidOrdercCh = make(chan invalidOrder)
 
-	wg.Add(1)
 	// go receiveOrders(receivedOrdercCh)
 	receivedOrdercCh := receiveOrders() // ro <-chan order
-	validateOrdercCh, invalidOrdercCh := validateOrders(receivedOrdercCh) // ro chan oreder, ro chan invalidOrder
+	validateOrdercCh, invalidOrdercCh := validateOrders(receivedOrdercCh) // ro chan oreder, ro chan invalidOrder	
+	reserveInventoryCh := reserveInventory(validateOrdercCh) // ro <-chan order
 
-	// go validateOrders(receivedOrdercCh, validateOrdercCh, invalidOrdercCh)
 
-	go func(validOrderCh <-chan order, invalidOrderCh <-chan invalidOrder) { // inCh rcv from channel
-		loop : for{
-		select {
-		case order, ok := <-validOrderCh:
-			if ok {
-				fmt.Printf("Valid Order Received: %v\n", order)
-			} else {
-				break loop
-			}
+	wg.Add(2)
 
-		case order, ok := <-invalidOrderCh:
-			if ok { 
-				fmt.Printf("Invalid Order Received: %v, err=%v\n", order.Order, order.Err)
-			} else {
-				break loop
-			}
-		// default:
-		// 	println(`default`)
-		
+	go func(invalidOrderCh <-chan invalidOrder) {
+
+		for order := range invalidOrderCh{
+			fmt.Printf("Invalid Order Received: %v, err=%v\n", order.Order, order.Err)
 		}
-	}
-	wg.Done()
+		wg.Done()
+	}(invalidOrdercCh) 
 
-	}(validateOrdercCh, invalidOrdercCh)
+	go func(reservedInventoryCh <-chan order) {
+		for order := range reservedInventoryCh {
+			fmt.Printf("Inventory reserved for: %v\n", order)
+		}
+		wg.Done()
+	}(reserveInventoryCh) 
+	
+
+	// go func(validOrderCh <-chan order, invalidOrderCh <-chan invalidOrder) { // inCh rcv from channel
+	// 	loop : for{
+	// 		select {
+	// 		case order, ok := <-validOrderCh:
+	// 			if ok {
+	// 				fmt.Printf("Valid Order Received: %v\n", order)
+	// 			} else {
+	// 				break loop
+	// 			}
+
+	// 		case order, ok := <-invalidOrderCh:
+	// 			if ok { 
+	// 				fmt.Printf("Invalid Order Received: %v, err=%v\n", order.Order, order.Err)
+	// 			} else {
+	// 				break loop
+	// 			}
+	// 		// default:
+	// 		// 	println(`default`)
+	// 	}
+	// }
+	// }(validateOrdercCh, invalidOrdercCh)
 
 	// go func(inCh <-chan order) { // rcv from ch
 	// 	// order := <- validateOrdercCh
@@ -94,6 +108,42 @@ func orderMgmt() {
 
 }
 
+func reserveInventory(validOrdersInCh <-chan order) <-chan order {
+	chOut := make(chan order)
+
+	go func() {
+		for o := range validOrdersInCh {
+			o.Status = reserved
+			chOut <- o	
+		}
+		close(chOut)
+	}()
+
+	return chOut
+}
+
+func receiveOrders() <-chan order {  // return ro chan
+	outCh := make(chan order) // rw chan
+
+	go func() {
+		for _, rawOrder := range rawOrders {
+			var newOrder order
+
+			err := json.Unmarshal([]byte(rawOrder), &newOrder)
+
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			// fmt.Printf("Receiving new order %v\n", newOrder)
+			//orders = append(orders, newOrder)
+			outCh <- newOrder
+		}
+		close(outCh)
+	}()
+
+	return outCh // returm as ro
+}
 
 func validateOrders(inCh <-chan order)  (<-chan order, <-chan invalidOrder) {
 	// order := <- inCh // inCh rcv from ch
@@ -139,28 +189,6 @@ func validateOrders(inCh <-chan order)  (<-chan order, <-chan invalidOrder) {
 // }
 
 
-func receiveOrders() <-chan order { 
-	outCh := make(chan order) // rw chan
-
-	go func() {
-		for _, rawOrder := range rawOrders {
-			var newOrder order
-
-			err := json.Unmarshal([]byte(rawOrder), &newOrder)
-
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			// fmt.Printf("Receiving new order %v\n", newOrder)
-			//orders = append(orders, newOrder)
-			outCh <- newOrder
-		}
-		close(outCh)
-	}()
-
-	return outCh // returm as ro
-}
 
 
 // func receiveOrders(outCh chan<- order) {
