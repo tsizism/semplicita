@@ -27,7 +27,22 @@ func main() {
 	// newOrder = blablabla{}
 	// fmt.Printf("New Order : %v\n", newOrder)
 
+	var bla [2]int
+	bla[0] = 1
+	log.Printf("%v", bla)
+
+	baz("2")
 	orderMgmt()
+}
+
+func baz(x interface{}) {
+	switch x.(type) {
+	case int:
+		println("int")
+	
+	case string:
+		println("str")
+	}
 }
 
 func bufChannel() {

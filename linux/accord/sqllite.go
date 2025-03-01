@@ -8,7 +8,7 @@ import (
 	"log"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
 )
 
 var db *sql.DB
