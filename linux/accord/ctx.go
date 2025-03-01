@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,29 @@ type result struct {
 var urls = []string{"https://www.amazon.ca/", "https://www.google.ca/", "https://www.nytimes.com/", "https://www.wsj.com/", "http://localhost:8080"}
 
 // https://www.youtube.com/watch?v=0x_oUlxzw5A
+
+func main4() {
+	// ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second); defer cancel() 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func(ctx context.Context) {
+		defer wg.Done()
+		for range time.Tick(1000 * time.Millisecond) {
+			if ctx.Err() != nil {
+				log.Println(ctx.Err())
+				return
+			}
+			fmt.Print("tick\n")
+		}
+	} (ctx)
+	// time.Sleep(2 * time.Second)
+	// cancel()
+	wg.Wait()
+}
+
 
 func main3() {
 	s := time.Now(); defer func(){t := time.Since(s).Round(time.Millisecond);fmt.Printf("Duration=%s", t)}()
