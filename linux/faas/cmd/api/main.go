@@ -58,7 +58,8 @@ func main() {
 
 	appCtx.logger.Printf(`Started Yahoo service on port %d`, DEFAULT_RPC_PORT)
 
-	rpcServer := NewRPCServer(appCtx.logger)
+	rpcServer := NewRPCServer(appCtx.logger); defer rpcServer.Shutdown()
+
 
 	err := rpc.Register(rpcServer)
 	if err != nil {

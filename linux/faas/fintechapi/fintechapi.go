@@ -34,10 +34,18 @@ type IStockAPI interface {
 	GetSingleStockPriceNum(ticker string) (float32, error)
 	GetStocksPriceCSV(tickersCSV string) (string, error)
 	GetStocksFullPriceCSV(tickersCSV string) (string, error)
+	Shutdown()
 }
 
 type StockAPI struct {
 	yahooApi YHFinanceCompleteAPI
+	// tickerPriceReqCh <-chan  string
+	// tickerPriceRespCh chan<-  float32
+	// tickerPriceErrCh chan<-  error
+}
+
+func (s StockAPI)Shutdown() {
+	s.yahooApi.logger.Printf("Shutdown")
 }
 
 func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
@@ -79,7 +87,7 @@ func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
 	return result, nil
 }
 
-func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
+func (s StockAPI) GetSingleStockPriceNum2(ticker string) (float32, error) {
 	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPriceNum stock prices for %s", ticker)
 	resp, err := s.yahooApi.GetSingleStockPrice(ticker)
 	if err != nil {
@@ -87,3 +95,16 @@ func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
 	}
 	return resp.Price, nil
 }
+
+
+func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPriceNum stock prices for %s", ticker)
+	
+	resp, err := s.yahooApi.GetSingleStockPrice(ticker)
+
+	if err != nil {
+		return 0, err
+	}
+	return resp.Price, nil
+}
+

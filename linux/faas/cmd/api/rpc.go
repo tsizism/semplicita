@@ -16,6 +16,7 @@ func NewRPCServer(logger *log.Logger) *RPCServer {
 	return &RPCServer{stockAPI: fintechapi.NewStockAPI(logger)}
 }
 
+
 type GetSingleStockPriceReqResp struct {
 	TickerPrice string
 	Error string
@@ -36,6 +37,9 @@ type GetStocksPriceReqResp struct {
 	Error string
 }
 
+func (s *RPCServer)Shutdown() {
+	s.stockAPI.Shutdown()
+}
 
 // GetSingleStockPrice handles the RPC call to get stock price
 func (s *RPCServer) GetSingleStockPriceTxt(req GetSingleStockPriceReqResp, res *GetSingleStockPriceReqResp) error {

@@ -6,6 +6,7 @@ package fintechapi
 // Basic $9.99 - 14,986 / Month
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // export YHFINCOMPLETE_APIKEY_FN=~/github/yhfincomplete_apikey.txt
@@ -67,7 +69,7 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 // Returns:
 //   - *http.Request: A pointer to the constructed HTTP request.
 //   - error: An error object if an error occurs during the request creation.
-func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Values) (*http.Request, error) {
+func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Values) (*http.Request, error) { // context.CancelFunc
 	api.logger.Printf("buildRequest: subDir=%s %+v\n", subDir, queryParams)
 
 	// fmt.Printf("YHFinanceCompleteAPI.go: yhfhistoricalDecode ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
@@ -78,13 +80,18 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 
 	var request *http.Request
 	var exists bool
+	ctx, _ := context.WithTimeout(context.Background(), 3 * time.Second) ///;	defer cancel()
 	if request, exists = api.requestCache[subDir]; !exists {
 		var err error
-		request, err = http.NewRequest("GET", "", nil)
+		// request, err = http.NewRequest("GET", "", nil)
+		// ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second);	defer cancel()
+		// ctx := context.Background()
+
+		request, err = http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+		// api.logger.Printf("buildRequest w/ctx -------------->: request=%+v\n", request)
 		if err != nil {
-			return nil, fmt.Errorf("http.NewRequest error: %w", err)
+			return nil, fmt.Errorf("http.NewRequest error: %w", err) //, cancel
 		}
-		
 
 		api.requestCache[subDir] = request
 		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)
@@ -103,12 +110,13 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	api.logger.Printf("buildRequest: requestUrl=%s\n", requestUrl)
 
 	var err error
-	request.URL, err = url.Parse(requestUrl)
 	// api.logger.Printf("buildRequest -------------->: request=%+v\n", request)
+	request.URL, err = url.Parse(requestUrl)
+	
 	if err != nil {
-		return nil, fmt.Errorf("url.Parse error: %w", err)
+		return nil, fmt.Errorf("url.Parse error: %w", err) //, cancel
 	}
-	return request, nil
+	return request, nil //, cancel
 }
 
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
@@ -142,6 +150,7 @@ func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (Yffullst
 
 	queryParams := url.Values{"symbol": {symbol}}
 
+	// ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second);	defer cancel()
 	req, err := api.buildRequest("price", queryParams)
 	if err != nil {
 		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
@@ -186,6 +195,45 @@ func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (Yffullst
 //   - Returns an error if the response cannot be decoded.
 //   - Returns an error if the symbol in the response is empty.
 func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceResponse, error) {
+	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
+
+	var jsonResponse YfpriceResponse
+
+	if ticker == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
+	}
+
+	queryParams := url.Values{"ticker": {ticker}}
+
+	req, err := api.buildRequest("yhprice", queryParams)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+	}
+
+	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
+
+	defer res.Body.Close()
+
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
+
+	if jsonResponse.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
+
+	fmt.Printf("resp=%+v\n", jsonResponse)
+
+	return jsonResponse, nil
+}
+
+func (api YHFinanceCompleteAPI) GetSingleStockPriceAsync(ticker string) (YfpriceResponse, error) {
 	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
 	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
 
