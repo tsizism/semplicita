@@ -66,7 +66,7 @@ func util_getTestWeekStartAndEndDates() (string, string) {
 //func setupSuite(tb testing.TB) func(tb testing.TB) {
 
 func init() {
-	root := "C:\\github\\yhfincomplete_apikey.txt"
+	root := "C:\\github\\"
 	if runtime.GOOS == "darwin" {
 		root = "/Users/mark/github/"
 	}
@@ -114,8 +114,8 @@ func Test_GetHistoricalWithUnmarshal(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotEmpty(t, jsonMapArr)
 		assert.Equal(t, 5, len(jsonMapArr)) // 5 business days in a week
-		assert.Equal(t, "2025-01-27T14:30:00.000Z", jsonMapArr[0].Date)
-		assert.Equal(t, float32(33.89), jsonMapArr[0].Low)
+		assert.Equal(t, "2025-02-24T14:30:00.000Z", jsonMapArr[0].Date)
+		assert.Equal(t, float32(34.05), jsonMapArr[0].Low)
 	})
 
 	t.Run("GetHistoricalWithUnmarshal BCE.TO Valid request with existing file", func(t *testing.T) {
@@ -164,9 +164,9 @@ func Test_GetHistoricalWithDecode(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotEmpty(t, jsonMapArr)
 		assert.Equal(t, 5, len(jsonMapArr)) // 5 business days in a week
-		assert.Equal(t, "2025-01-27T14:30:00.000Z", jsonMapArr[0].Date)
-		assert.Equal(t, float32(33.89), jsonMapArr[0].Low)
-		assert.Equal(t, float32(34.8), jsonMapArr[0].High)
+		assert.Equal(t, "2025-02-24T14:30:00.000Z", jsonMapArr[0].Date)
+		assert.Equal(t, float32(34.05), jsonMapArr[0].Low)
+		assert.Equal(t, float32(34.67), jsonMapArr[0].High)
 	})
 
 	t.Run("GetHistoricalWithDecode Invalid request with incorrect dates", func(t *testing.T) {
@@ -188,7 +188,7 @@ func Test_GetSingleStockPrice(t *testing.T) {
 
 	t.Run("GetSingleStockPrice Valid request", func(t *testing.T) {
 		// act
-		priceResponse, err := yahooApi.GetSingleStockPrice(ticker)
+		priceResponse, err := yahooApi.getSingleStockPrice(ticker)
 
 		// assert
 		assert.Nil(t, err)
@@ -201,7 +201,7 @@ func Test_GetSingleStockPrice(t *testing.T) {
 
 	t.Run("GetSingleStockPrice Invalid request with empty ticker", func(t *testing.T) {
 		// act
-		priceResponse, err := yahooApi.GetSingleStockPrice("")
+		priceResponse, err := yahooApi.getSingleStockPrice("")
 
 		// assert
 		assert.NotNil(t, err)
@@ -210,7 +210,7 @@ func Test_GetSingleStockPrice(t *testing.T) {
 
 	t.Run("GetSingleStockPrice Invalid request with non-existent ticker", func(t *testing.T) {
 		// act
-		priceResponse, err := yahooApi.GetSingleStockPrice("INVALID_TICKER")
+		priceResponse, err := yahooApi.getSingleStockPrice("INVALID_TICKER")
 
 		// assert
 		assert.NotNil(t, err)
@@ -260,7 +260,7 @@ func Test_GetSingleStockFullPrice(t *testing.T) {
 
 	t.Run("GetFullSingleStockPrice Valid request", func(t *testing.T) {
 		// act
-		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice(symbol)
+		fullPriceResponse, err := yahooApi.getSingleStockFullPrice(symbol)
 
 		// assert
 		assert.Nil(t, err)
@@ -273,7 +273,7 @@ func Test_GetSingleStockFullPrice(t *testing.T) {
 
 	t.Run("GetFullSingleStockPrice Invalid request with empty symbol", func(t *testing.T) {
 		// act
-		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice("")
+		fullPriceResponse, err := yahooApi.getSingleStockFullPrice("")
 
 		// assert
 		assert.NotNil(t, err)
@@ -282,7 +282,7 @@ func Test_GetSingleStockFullPrice(t *testing.T) {
 
 	t.Run("GetFullSingleStockPrice Invalid request with non-existent symbol", func(t *testing.T) {
 		// act
-		fullPriceResponse, err := yahooApi.GetSingleStockFullPrice("INVALID_SYMBOL")
+		fullPriceResponse, err := yahooApi.getSingleStockFullPrice("INVALID_SYMBOL")
 
 		// assert
 		assert.NotNil(t, err)

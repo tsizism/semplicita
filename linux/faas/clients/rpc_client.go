@@ -34,24 +34,77 @@ func unwrapErrors(prfix string, logger *log.Logger, err error, deep int) {
 	}
 }
 
-func main() {
-	
-	appCtx := applicationContext {
-		logger: log.New(os.Stdout, "", log.Ltime),
-	}
-
-	txt, err := appCtx.getSingleStockPriceTxt(); if err != nil {
-		unwrapErrors("getSingleStockPriceTxt", appCtx.logger, err, 1)
-		return 
-	}
-
-	fmt.Printf("Stock Price: %s", txt)
-}
-
 type GetSingleStockPriceReqResp struct {
 	TickerPrice string
 	Error string
 }
+
+type GetStocksPriceReqRespCSV struct {
+	TickerPriceCSV string
+	Error string
+}
+
+
+func main() {
+	appCtx := applicationContext {
+		logger: log.New(os.Stdout, "", log.Ltime),
+	}
+
+	hit1(appCtx)
+}
+
+func hit1(appCtx applicationContext) {
+	txt, err := appCtx.getStocksFullPricCSV(); if err != nil {
+		unwrapErrors("getStocksFullPricCSV", appCtx.logger, err, 1)
+	}
+	fmt.Printf("Full price CSV: %s", txt)
+}
+
+func hit2(appCtx applicationContext) {
+	txt, err := appCtx.getSingleStockPriceTxt(); if err != nil {
+		unwrapErrors("getSingleStockPriceTxt", appCtx.logger, err, 1)
+	}
+	fmt.Printf("Stock Price: %s", txt)
+}
+
+func (appCtx *applicationContext) getStocksFullPricCSV() (string, error){
+	tickers := "BCE.TO,BCE, CM, CM.TO"
+	appCtx.logger.Printf("getStocksFullPriceCSV: payload=%+v", tickers)
+	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
+
+	if err != nil {
+		// shared.ErrorJSON(w, err)
+		// return
+		return "", fmt.Errorf("%w", err)
+	}
+
+	type GetStocksPriceReqRespCSV struct {
+		TickerPriceCSV string
+		Error string
+	}
+
+	var result, rpcPayload GetStocksPriceReqRespCSV
+	rpcPayload.TickerPriceCSV = tickers
+	
+	err = client.Call("RPCServer.GetStocksFullPriceCSV", rpcPayload, &result);	if err != nil {
+		return "", fmt.Errorf("GetStocksFullPrice: Failed to call RPC %w", err)
+		// appCtx.logger.Printf("GetStocksFullPrice: Failed to call RPC %s", err)
+		// shared.ErrorJSON(w, err)
+		// return
+	}
+
+	appCtx.logger.Printf("GetStocksFullPriceCSV for %s: result=%+v", tickers, result)
+
+	return result.TickerPriceCSV, nil
+
+	// payload := shared.JsonResponse{
+	// 	Error:   false,
+	// 	Message: fmt.Sprintf("TickersPriceCSV: %s", result.TickerPriceCSV),
+	// }
+
+	// shared.WriteJSON(w, http.StatusAccepted, payload)
+}
+
 
 func (appCtx applicationContext) getSingleStockPriceTxt() (string,error) {
 	ticker := "AAPL"

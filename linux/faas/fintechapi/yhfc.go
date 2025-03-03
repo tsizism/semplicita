@@ -6,7 +6,6 @@ package fintechapi
 // Basic $9.99 - 14,986 / Month
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 )
 
 // export YHFINCOMPLETE_APIKEY_FN=~/github/yhfincomplete_apikey.txt
@@ -32,13 +30,22 @@ const (
 )
 
 type YHFinanceCompleteAPI struct {
-	logger           *log.Logger
-	urlDomain        string // "https://yh-finance-complete.p.rapidapi.com"
-	apiKey           string
-	apiHost          string
-	cacheFileNameFmt string
-	requestCache     map[string]*http.Request
+	logger             	*log.Logger
+	urlDomain          	string // "https://yh-finance-complete.p.rapidapi.com"
+	apiKey             	string
+	apiHost            	string
+	cacheFileNameFmt   	string
+	requestCache       	map[string]*http.Request
+	tickerCh           	chan Ticker
+	priceResponseCh    	chan YfpriceResponse
+	priceResponseErrCh 	chan error
+	symbolCh			chan Symbol
+	stockFullPriceCh 	chan YffullstockpriceResponse
+	stockFullPriceErrCh chan error
 }
+
+type Ticker string
+type Symbol string
 
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	fn := os.Getenv(ApiHost_ENVVAR)
@@ -48,76 +55,119 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	}
 	println("--------------------->" + string(apiKey_YHFinanceCompleteAPI))
 
-	return YHFinanceCompleteAPI{
-		urlDomain:        UrlDomain_YHFinanceCompleteAPI,
-		apiHost:          ApiHost_YHFinanceCompleteAPI,
-		apiKey:           strings.TrimSpace(string(apiKey_YHFinanceCompleteAPI)),
-		logger:           log.New(os.Stdout, "", log.Ltime),
-		cacheFileNameFmt: "%s.%s.json",
-		requestCache:     make(map[string]*http.Request),
+	// tickerCh, priceResponseCh := runGetSingleStockPrice()
+
+	yHFinanceCompleteAPI := YHFinanceCompleteAPI{
+		urlDomain:          UrlDomain_YHFinanceCompleteAPI,
+		apiHost:            ApiHost_YHFinanceCompleteAPI,
+		apiKey:             strings.TrimSpace(string(apiKey_YHFinanceCompleteAPI)),
+		logger:             log.New(os.Stdout, "", log.Ltime),
+		cacheFileNameFmt:   "%s.%s.json",
+		requestCache:       make(map[string]*http.Request),
 	}
+
+	yHFinanceCompleteAPI.runGetSingleStockPrice()
+	yHFinanceCompleteAPI.runGetSingleStockFullPrice()
+
+	return yHFinanceCompleteAPI
 }
 
-// buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
-// It takes a sub-directory path and query parameters as inputs and returns
-// an HTTP request pointer and an error if any occurs during the request creation.
+func (api *YHFinanceCompleteAPI) runGetSingleStockPrice() {
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
+	api.tickerCh = make(chan Ticker)
+	api.priceResponseCh = make(chan YfpriceResponse)
+	api.priceResponseErrCh = make(chan error, 1)
+
+	api.logger.Println("Kicking getSingleStockPrice goroutine")
+
+	go func() {
+		for ticker := range api.tickerCh {
+			jsonResponse, err := api.getSingleStockPrice(string(ticker))
+			if err != nil {
+				api.priceResponseErrCh <- err
+			} else {
+				api.priceResponseCh <- jsonResponse
+			}
+		}
+	}()
+}
+
+// GetSingleStockPrice retrieves the stock price for the given ticker symbol.
+// It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
 //
 // Parameters:
-//   - subDir: A string representing the sub-directory path for the request.
-//   - queryParams: A url.Values object containing the query parameters for the request.
+//   - ticker: The stock ticker symbol for which the price is to be retrieved.
 //
 // Returns:
-//   - *http.Request: A pointer to the constructed HTTP request.
-//   - error: An error object if an error occurs during the request creation.
-func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Values) (*http.Request, error) { // context.CancelFunc
-	api.logger.Printf("buildRequest: subDir=%s %+v\n", subDir, queryParams)
+//   - YfpriceResponse: The response containing the stock price information.
+//   - error: An error if the request fails or the response is invalid.
+//
+// Errors:
+//   - Returns an error if the ticker is empty.
+//   - Returns an error if there is an issue building the request.
+//   - Returns an error if the HTTP request fails.
+//   - Returns an error if the response cannot be decoded.
+//   - Returns an error if the symbol in the response is empty.
+func (api YHFinanceCompleteAPI) getSingleStockPrice(ticker string) (YfpriceResponse, error) {
+	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
 
-	// fmt.Printf("YHFinanceCompleteAPI.go: yhfhistoricalDecode ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
+	var jsonResponse YfpriceResponse
 
-	// url := "https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=TSLA&sdate=2025-02-10&edate=2025-02-11"
-	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
-	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
-
-	var request *http.Request
-	var exists bool
-	ctx, _ := context.WithTimeout(context.Background(), 3 * time.Second) ///;	defer cancel()
-	if request, exists = api.requestCache[subDir]; !exists {
-		var err error
-		// request, err = http.NewRequest("GET", "", nil)
-		// ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second);	defer cancel()
-		// ctx := context.Background()
-
-		request, err = http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
-		// api.logger.Printf("buildRequest w/ctx -------------->: request=%+v\n", request)
-		if err != nil {
-			return nil, fmt.Errorf("http.NewRequest error: %w", err) //, cancel
-		}
-
-		api.requestCache[subDir] = request
-		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)
-
-		fmt.Printf("request=%+v\n", request)
-
-		request.Header.Add("x-rapidapi-host", api.apiHost)
-		request.Header.Add("x-rapidapi-key", api.apiKey)
-		api.logger.Printf("x-rapidapi-key='%s'\n", api.apiKey)
-
+	if ticker == "" {
+		return jsonResponse, fmt.Errorf("ticker is empty")
 	}
 
-	requestUrl := fmt.Sprintf("%s/%s?", api.urlDomain, subDir)
-	requestUrl += queryParams.Encode()
+	queryParams := url.Values{"ticker": {ticker}}
 
-	api.logger.Printf("buildRequest: requestUrl=%s\n", requestUrl)
-
-	var err error
-	// api.logger.Printf("buildRequest -------------->: request=%+v\n", request)
-	request.URL, err = url.Parse(requestUrl)
-	
+	req, err := api.buildRequest("yhprice", queryParams)
 	if err != nil {
-		return nil, fmt.Errorf("url.Parse error: %w", err) //, cancel
+		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
 	}
-	return request, nil //, cancel
+
+	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
+	}
+
+	defer res.Body.Close()
+
+	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
+		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
+	}
+
+	if jsonResponse.Symbol == "" {
+		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	}
+
+	fmt.Printf("resp=%+v\n", jsonResponse)
+
+	return jsonResponse, nil
 }
+
+
+func (api YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
+	api.symbolCh = make(chan Symbol)
+	api.stockFullPriceCh = make(chan YffullstockpriceResponse)
+	api.stockFullPriceErrCh = make(chan error, 1)
+
+	api.logger.Println("Kicking getSingleStockFullPrice goroutine")
+	go func() {
+		for symbol := range api.symbolCh {
+			println(string(symbol))
+			resp, err := api.getSingleStockFullPrice(string(symbol))
+
+			if err != nil {
+				api.stockFullPriceErrCh <- err
+			} else {
+				api.stockFullPriceCh <- resp
+			}
+		}
+	}()
+}
+
 
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
 // It sends a request to the YH Finance Complete API and decodes the JSON response into a YffullstockpriceResponse struct.
@@ -137,9 +187,8 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 //   5. Decodes the JSON response into the YffullstockpriceResponse struct.
 //   6. Checks if the symbol in the response is empty and returns an error if it is.
 //   7. Returns the decoded response and any error encountered during the process.
-
-func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (YffullstockpriceResponse, error) {
-	api.logger.Println("GetSingleStockFullPrice: symbol=", symbol)
+func (api YHFinanceCompleteAPI) getSingleStockFullPrice(symbol string) (YffullstockpriceResponse, error) {
+	api.logger.Println("getSingleStockFullPrice: symbol=", symbol)
 	//  "https://yh-finance-complete.p.rapidapi.com/price?symbol=cm.to"
 
 	var jsonResponse YffullstockpriceResponse
@@ -173,103 +222,74 @@ func (api YHFinanceCompleteAPI) GetSingleStockFullPrice(symbol string) (Yffullst
 		return jsonResponse, fmt.Errorf("symbol in response is empty")
 	}
 
-	fmt.Printf("GetSingleStockFullPrice resp=%+v\n", jsonResponse)
+	fmt.Printf("getSingleStockFullPrice resp=%+v\n", jsonResponse)
 
 	return jsonResponse, nil
 }
 
-// GetSingleStockPrice retrieves the stock price for the given ticker symbol.
-// It sends a request to the YHFinanceComplete API and decodes the response into a YfpriceResponse struct.
+
+
+// buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
+// It takes a sub-directory path and query parameters as inputs and returns
+// an HTTP request pointer and an error if any occurs during the request creation.
 //
 // Parameters:
-//   - ticker: The stock ticker symbol for which the price is to be retrieved.
+//   - subDir: A string representing the sub-directory path for the request.
+//   - queryParams: A url.Values object containing the query parameters for the request.
 //
 // Returns:
-//   - YfpriceResponse: The response containing the stock price information.
-//   - error: An error if the request fails or the response is invalid.
-//
-// Errors:
-//   - Returns an error if the ticker is empty.
-//   - Returns an error if there is an issue building the request.
-//   - Returns an error if the HTTP request fails.
-//   - Returns an error if the response cannot be decoded.
-//   - Returns an error if the symbol in the response is empty.
-func (api YHFinanceCompleteAPI) GetSingleStockPrice(ticker string) (YfpriceResponse, error) {
-	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
-	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
+//   - *http.Request: A pointer to the constructed HTTP request.
+//   - error: An error object if an error occurs during the request creation.
+func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Values) (*http.Request, error) { // context.CancelFunc
+	api.logger.Printf("buildRequest: subDir=%s %+v\n", subDir, queryParams)
 
-	var jsonResponse YfpriceResponse
+	// fmt.Printf("YHFinanceCompleteAPI.go: yhfhistoricalDecode ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
 
-	if ticker == "" {
-		return jsonResponse, fmt.Errorf("ticker is empty")
+	// url := "https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=TSLA&sdate=2025-02-10&edate=2025-02-11"
+	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
+	// url := fmt.Sprintf("https://yh-finance-complete.p.rapidapi.com/yhfhistorical?ticker=%s&sdate=%s&edate=%s", ticker, sdate, edate)
+
+	var request *http.Request
+	var exists bool
+	// ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second) ///;	defer cancel()
+	if request, exists = api.requestCache[subDir]; !exists {
+		api.logger.Printf("buildRequest: creating new request for =%s\n", subDir)
+		var err error
+		request, err = http.NewRequest("GET", "", nil)
+		// ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second);	defer cancel()
+		// ctx := context.Background()
+
+		// request, err = http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+		// api.logger.Printf("buildRequest w/ctx -------------->: request=%+v\n", request)
+		if err != nil {
+			return nil, fmt.Errorf("http.NewRequest error: %w", err) //, cancel
+		}
+
+		api.requestCache[subDir] = request
+		api.logger.Printf("buildRequest -------------->: requestCache=%+v\n", api.requestCache)
+
+		fmt.Printf("request=%+v\n", request)
+
+		request.Header.Add("x-rapidapi-host", api.apiHost)
+		request.Header.Add("x-rapidapi-key", api.apiKey)
+		api.logger.Printf("x-rapidapi-key='%s'\n", api.apiKey)
+	} else {
+		api.logger.Printf("buildRequest: pulled request from cache=%v\n", request)
 	}
 
-	queryParams := url.Values{"ticker": {ticker}}
+	requestUrl := fmt.Sprintf("%s/%s?", api.urlDomain, subDir)
+	requestUrl += queryParams.Encode()
 
-	req, err := api.buildRequest("yhprice", queryParams)
+	api.logger.Printf("buildRequest: requestUrl=%s\n", requestUrl)
+
+	var err error
+	// api.logger.Printf("buildRequest -------------->: request=%+v\n", request)
+	request.URL, err = url.Parse(requestUrl)
+
 	if err != nil {
-		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+		return nil, fmt.Errorf("url.Parse error: %w", err) //, cancel
 	}
-
-	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
-	}
-
-	defer res.Body.Close()
-
-	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
-		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
-	}
-
-	if jsonResponse.Symbol == "" {
-		return jsonResponse, fmt.Errorf("symbol in response is empty")
-	}
-
-	fmt.Printf("resp=%+v\n", jsonResponse)
-
-	return jsonResponse, nil
-}
-
-func (api YHFinanceCompleteAPI) GetSingleStockPriceAsync(ticker string) (YfpriceResponse, error) {
-	api.logger.Println("GetSingleStockPrice: ticker=", ticker)
-	// url := "https://yh-finance-complete.p.rapidapi.com/yhprice?ticker=BCE.TO"
-
-	var jsonResponse YfpriceResponse
-
-	if ticker == "" {
-		return jsonResponse, fmt.Errorf("ticker is empty")
-	}
-
-	queryParams := url.Values{"ticker": {ticker}}
-
-	req, err := api.buildRequest("yhprice", queryParams)
-	if err != nil {
-		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
-	}
-
-	// url := fmt.Sprintf("%s/yhprice?ticker=%s", urlDomain, ticker)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
-	}
-
-	defer res.Body.Close()
-
-	if err := json.NewDecoder(res.Body).Decode(&jsonResponse); err != nil {
-		return jsonResponse, fmt.Errorf("json.Decode error: %w", err)
-	}
-
-	if jsonResponse.Symbol == "" {
-		return jsonResponse, fmt.Errorf("symbol in response is empty")
-	}
-
-	fmt.Printf("resp=%+v\n", jsonResponse)
-
-	return jsonResponse, nil
+	return request, nil //, cancel
 }
 
 // GetHistoricalWithUnmarshal retrieves historical financial data for a given ticker symbol
