@@ -30,22 +30,21 @@ const (
 )
 
 type YHFinanceCompleteAPI struct {
-	logger             	*log.Logger
-	urlDomain          	string // "https://yh-finance-complete.p.rapidapi.com"
-	apiKey             	string
-	apiHost            	string
-	cacheFileNameFmt   	string
-	requestCache       	map[string]*http.Request
-	tickerCh           	chan Ticker
-	priceResponseCh    	chan YfpriceResponse
-	priceResponseErrCh 	chan error
-	symbolCh			chan Symbol
-	stockFullPriceCh 	chan YffullstockpriceResponse
-	stockFullPriceErrCh chan error
+	logger                 *log.Logger
+	urlDomain              string // "https://yh-finance-complete.p.rapidapi.com"
+	apiKey                 string
+	apiHost                string
+	cacheFileNameFmt       string
+	requestCache           map[string]*http.Request
+	tickerCh               chan Ticker
+	priceResponseCh        chan YfpriceResponse
+	priceResponseErrCh     chan error
+	stockFullPriceTickerCh chan Ticker
+	stockFullPriceCh       chan YffullstockpriceResponse
+	stockFullPriceErrCh    chan error
 }
 
 type Ticker string
-type Symbol string
 
 func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	fn := os.Getenv(ApiHost_ENVVAR)
@@ -58,12 +57,12 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	// tickerCh, priceResponseCh := runGetSingleStockPrice()
 
 	yHFinanceCompleteAPI := YHFinanceCompleteAPI{
-		urlDomain:          UrlDomain_YHFinanceCompleteAPI,
-		apiHost:            ApiHost_YHFinanceCompleteAPI,
-		apiKey:             strings.TrimSpace(string(apiKey_YHFinanceCompleteAPI)),
-		logger:             log.New(os.Stdout, "", log.Ltime),
-		cacheFileNameFmt:   "%s.%s.json",
-		requestCache:       make(map[string]*http.Request),
+		urlDomain:        UrlDomain_YHFinanceCompleteAPI,
+		apiHost:          ApiHost_YHFinanceCompleteAPI,
+		apiKey:           strings.TrimSpace(string(apiKey_YHFinanceCompleteAPI)),
+		logger:           log.New(os.Stdout, "", log.Ltime),
+		cacheFileNameFmt: "%s.%s.json",
+		requestCache:     make(map[string]*http.Request),
 	}
 
 	yHFinanceCompleteAPI.runGetSingleStockPrice()
@@ -147,15 +146,14 @@ func (api YHFinanceCompleteAPI) getSingleStockPrice(ticker string) (YfpriceRespo
 	return jsonResponse, nil
 }
 
-
-func (api YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
-	api.symbolCh = make(chan Symbol)
+func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
+	api.stockFullPriceTickerCh = make(chan Ticker)
 	api.stockFullPriceCh = make(chan YffullstockpriceResponse)
 	api.stockFullPriceErrCh = make(chan error, 1)
 
 	api.logger.Println("Kicking getSingleStockFullPrice goroutine")
 	go func() {
-		for symbol := range api.symbolCh {
+		for symbol := range api.stockFullPriceTickerCh {
 			println(string(symbol))
 			resp, err := api.getSingleStockFullPrice(string(symbol))
 
@@ -168,7 +166,6 @@ func (api YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 	}()
 }
 
-
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
 // It sends a request to the YH Finance Complete API and decodes the JSON response into a YffullstockpriceResponse struct.
 //
@@ -180,13 +177,13 @@ func (api YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 //   - error: An error if the request fails or the response is invalid.
 //
 // The function performs the following steps:
-//   1. Logs the request with the provided stock symbol.
-//   2. Checks if the symbol is empty and returns an error if it is.
-//   3. Builds the request with the given symbol as a query parameter.
-//   4. Sends the request using the default HTTP client.
-//   5. Decodes the JSON response into the YffullstockpriceResponse struct.
-//   6. Checks if the symbol in the response is empty and returns an error if it is.
-//   7. Returns the decoded response and any error encountered during the process.
+//  1. Logs the request with the provided stock symbol.
+//  2. Checks if the symbol is empty and returns an error if it is.
+//  3. Builds the request with the given symbol as a query parameter.
+//  4. Sends the request using the default HTTP client.
+//  5. Decodes the JSON response into the YffullstockpriceResponse struct.
+//  6. Checks if the symbol in the response is empty and returns an error if it is.
+//  7. Returns the decoded response and any error encountered during the process.
 func (api YHFinanceCompleteAPI) getSingleStockFullPrice(symbol string) (YffullstockpriceResponse, error) {
 	api.logger.Println("getSingleStockFullPrice: symbol=", symbol)
 	//  "https://yh-finance-complete.p.rapidapi.com/price?symbol=cm.to"
@@ -226,8 +223,6 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(symbol string) (Yffullst
 
 	return jsonResponse, nil
 }
-
-
 
 // buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
 // It takes a sub-directory path and query parameters as inputs and returns

@@ -16,10 +16,9 @@ func NewRPCServer(logger *log.Logger) *RPCServer {
 	return &RPCServer{stockAPI: fintechapi.NewStockAPI(logger)}
 }
 
-
 type GetSingleStockPriceReqResp struct {
 	TickerPrice string
-	Error string
+	Error       string
 }
 
 // type GetStocksPriceRequest struct {
@@ -34,16 +33,17 @@ type GetSingleStockPriceReqResp struct {
 
 type GetStocksPriceReqResp struct {
 	TickerPriceCSV string
-	Error string
+	Error          string
 }
 
-func (s *RPCServer)Shutdown() {
+func (s *RPCServer) Shutdown() {
 	s.stockAPI.Shutdown()
 }
 
 // GetSingleStockPrice handles the RPC call to get stock price
 func (s *RPCServer) GetSingleStockPriceTxt(req GetSingleStockPriceReqResp, res *GetSingleStockPriceReqResp) error {
-	price, err := s.stockAPI.GetSingleStockPriceNum(req.TickerPrice); if err != nil {
+	price, err := s.stockAPI.GetSingleStockPriceNum(req.TickerPrice)
+	if err != nil {
 		res.Error = err.Error()
 		return err
 	}
@@ -53,7 +53,8 @@ func (s *RPCServer) GetSingleStockPriceTxt(req GetSingleStockPriceReqResp, res *
 }
 
 func (s *RPCServer) GetStocksPriceCSV(req GetStocksPriceReqResp, res *GetStocksPriceReqResp) error {
-	tickerPriceCSV, err := s.stockAPI.GetStocksPriceCSV(req.TickerPriceCSV); if err != nil {
+	tickerPriceCSV, err := s.stockAPI.GetStocksPriceCSV(req.TickerPriceCSV)
+	if err != nil {
 		res.Error = err.Error()
 		return err
 	}
@@ -63,7 +64,8 @@ func (s *RPCServer) GetStocksPriceCSV(req GetStocksPriceReqResp, res *GetStocksP
 }
 
 func (s *RPCServer) GetStocksFullPriceCSV(req GetStocksPriceReqResp, res *GetStocksPriceReqResp) error {
-	tickerPriceCSV, err := s.stockAPI.GetStocksFullPriceCSV(req.TickerPriceCSV); if err != nil {
+	tickerPriceCSV, err := s.stockAPI.GetStocksFullPriceCSV(req.TickerPriceCSV)
+	if err != nil {
 		res.Error = err.Error()
 		return err
 	}

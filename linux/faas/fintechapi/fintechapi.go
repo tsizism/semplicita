@@ -85,26 +85,20 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	// 	result += ticker + ":" + fmt.Sprintf("%.2f",resp.Price) + ","
 	// }
 
-	// count := len(tickers) time.Duration(count)
-	ctx, cancel := context.WithTimeout(context.Background(), 100 *time.Second)
+	count := len(tickers)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(count)*time.Second) // 1 sec per request
 	defer cancel()
 	stockPriceFmt := ""
 
 	var wg sync.WaitGroup
 
-	wg.Add(len(tickers))
+	wg.Add(count)
 	go func() {
 		for i := 0; i < len(tickers); i++ {
 			var stockFullPrice YffullstockpriceResponse
 			select {
 			case stockFullPrice = <-s.yahooApi.stockFullPriceCh:
-			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
-			case <-ctx.Done():
-				println("done")
-				lastErr = errors.New("time out")
-			}
-
-			if lastErr == nil {
+				fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
 				if stockFullPrice.Price.RegularMarketChange < 0 {
 					stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
 				} else {
@@ -112,7 +106,14 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 				}
 				stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
 				result += stockInfo
+			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
+				fmt.Printf("lastErr %s\n", lastErr)
+			case <-ctx.Done():
+				fmt.Printf("done %d\n", i)
+				lastErr = errors.New("time out")
 			}
+
+			fmt.Printf("GetStocksFullPriceCSV done=%d", i)
 			wg.Done()
 		}
 
@@ -122,7 +123,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 
 	for _, ticker := range tickers {
 		println(ticker)
-		s.yahooApi.symbolCh <- Symbol(ticker)
+		s.yahooApi.stockFullPriceTickerCh <- Ticker(ticker)
 		println("send")
 	}
 

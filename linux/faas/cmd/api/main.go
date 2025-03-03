@@ -7,7 +7,6 @@ package main
 //C:\Users\tsizi\go
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -47,9 +46,9 @@ func main() {
 	buildInfo, _ := debug.ReadBuildInfo()
 	fmt.Printf(" '%+v': defaultPort=%d ...\n", buildInfo.Main.Path, DEFAULT_PORT)
 
-	cfg := config{}
-	flag.IntVar(&cfg.port, "port", DEFAULT_PORT, "Yahoo Port")
-	flag.Parse()
+	cfg := config{port: DEFAULT_PORT}
+	// flag.IntVar(&cfg.port, "port", DEFAULT_PORT, "Yahoo Port")
+	// flag.Parse()
 
 	appCtx := applicationContext{
 		logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
