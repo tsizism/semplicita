@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/rpc"
@@ -50,25 +51,39 @@ func main() {
 		logger: log.New(os.Stdout, "", log.Ltime),
 	}
 
-	hit1(appCtx)
+	var sw int
+	flag.IntVar(&sw, "sw", 0, "0,1,2")
+	flag.Parse()
+	fmt.Printf("sw=%v\n", sw)
+
+	m := "BCE.TO,BCE, CM, CM.TO"
+	l := "BCE.TO,BCE, CM, CM.TO, ENB, AVGO, A, T, V, META "
+
+	switch sw {
+		case 1:  one(appCtx)
+		case 2:  many(appCtx, m)
+		case 3:  many(appCtx, l)
+		default: one(appCtx); many(appCtx, m)
+	}
 }
 
-func hit1(appCtx applicationContext) {
-	txt, err := appCtx.getStocksFullPricCSV(); if err != nil {
+func many(appCtx applicationContext, tickers string) {
+	println("many " + tickers)
+	txt, err := appCtx.getStocksFullPricCSV(tickers); if err != nil {
 		unwrapErrors("getStocksFullPricCSV", appCtx.logger, err, 1)
 	}
 	fmt.Printf("Full price CSV: %s", txt)
 }
 
-func hit2(appCtx applicationContext) {
+func one(appCtx applicationContext) {
+	println("one")
 	txt, err := appCtx.getSingleStockPriceTxt(); if err != nil {
 		unwrapErrors("getSingleStockPriceTxt", appCtx.logger, err, 1)
 	}
-	fmt.Printf("Stock Price: %s", txt)
+	fmt.Printf("Stock Price: %s\n", txt)
 }
 
-func (appCtx *applicationContext) getStocksFullPricCSV() (string, error){
-	tickers := "BCE.TO,BCE, CM, CM.TO"
+func (appCtx *applicationContext) getStocksFullPricCSV(tickers string) (string, error){
 	appCtx.logger.Printf("getStocksFullPriceCSV: payload=%+v", tickers)
 	client, err := rpc.Dial("tcp", "localhost:5003") // faas-service:5003
 

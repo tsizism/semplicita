@@ -99,13 +99,31 @@ func main() {
 	go appCtx.gRPCListen()
 
 	// Wait for Ctrl-C and closeUp if happened
-	ch := make(chan os.Signal, 1) // terminate over Ctrl-C
+	// ch := make(chan os.Signal, 1) // terminate over Ctrl-C
 	// signal.Notify(ch, os.Interrupt) Ctrl-C
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	go appCtx.closeUp(ch)
+	// signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	// go appCtx.closeUp(ch)
+
+	go shutdown()
+	forever := make(chan int)
 
 	appCtx.serve()
+
+	<-forever
 }
+
+func shutdown() {
+	// Wait for Ctrl-C and closeUp if happened
+	exitCh := make(chan os.Signal, 1) // terminate over Ctrl-C
+	signal.Notify(exitCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-exitCh
+		fmt.Println("Shutdown")
+		// Cleanup
+		os.Exit(0)
+	}()
+}
+
 
 func (appCtx *applicationContext) InsertStartStopServiceEvent(startStop string) error {
 	traceEvent := data.TraceEntry{
@@ -123,11 +141,11 @@ func (appCtx *applicationContext) InsertStartStopServiceEvent(startStop string) 
 	return nil
 }
 
-func (appCtx *applicationContext) closeUp(ch <-chan os.Signal) {
-	<-ch // wait  signal
-	appCtx.cleanup("CloseUp UPON signal", context.TODO())
-	// os.Exit(1)	cleanup will unblock main()
-}
+// func (appCtx *applicationContext) closeUp(ch <-chan os.Signal) {
+// 	<-ch // wait  signal
+// 	appCtx.cleanup("CloseUp UPON signal", context.TODO())
+// 	// os.Exit(1)	cleanup will unblock main()
+// }
 
 func (appCtx *applicationContext) cleanup(exitReason string, ctx context.Context) {
 	appCtx.logger.Println("exitReason", exitReason)

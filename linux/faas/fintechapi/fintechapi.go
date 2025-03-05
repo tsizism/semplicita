@@ -2,12 +2,13 @@ package fintechapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
+
 )
 
 // FintechAPI defines the interface for the fintech API
@@ -30,6 +31,7 @@ type Transaction struct {
 func NewStockAPI(logger *log.Logger) IStockAPI {
 	return StockAPI{
 		yahooApi: NewYHFinanceCompleteAPI(logger),
+		reqTimeoutSec: 2,
 	}
 }
 
@@ -42,11 +44,12 @@ type IStockAPI interface {
 }
 
 type StockAPI struct {
+	reqTimeoutSec int
 	yahooApi YHFinanceCompleteAPI
 }
 
 func (s StockAPI) Shutdown() {
-	s.yahooApi.logger.Printf("Shutdown")
+	s.yahooApi.logger.Printf("Shutdown StockAPI")
 }
 
 // func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
@@ -78,56 +81,60 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	result := ""
 	var lastErr error
 
-	// for _, ticker := range tickers {
-	// 	resp, err := s.yahooApi.getSingleStockPrice(strings.TrimSpace(ticker));	if err != nil {
-	// 		return "", err
-	// 	}
-	// 	result += ticker + ":" + fmt.Sprintf("%.2f",resp.Price) + ","
-	// }
-
 	count := len(tickers)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(count)*time.Second) // 1 sec per request
-	defer cancel()
 	stockPriceFmt := ""
 
+	var mutext sync.Mutex 
 	var wg sync.WaitGroup
-
 	wg.Add(count)
-	go func() {
-		for i := 0; i < len(tickers); i++ {
-			var stockFullPrice YffullstockpriceResponse
+	var stockFullPrice YffullstockpriceResponse
+	// sem := semaphore.NewWeighted(2)
+	for i := 0; i < count; i++ {
+		fmt.Println(runtime.NumGoroutine())
+		// err := sem.Acquire(context.Background(), 1); if err != nil {
+		//  	log.Fatal(err)
+		// }
+
+		go func() {
+			// defer sem.Release(1)
+
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec) * time.Second); defer cancel()
+
 			select {
 			case stockFullPrice = <-s.yahooApi.stockFullPriceCh:
-				fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
+				// fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
 				if stockFullPrice.Price.RegularMarketChange < 0 {
 					stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
 				} else {
 					stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
 				}
 				stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
+				mutext.Lock()
 				result += stockInfo
+				mutext.Unlock()
 			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
 				fmt.Printf("lastErr %s\n", lastErr)
 			case <-ctx.Done():
-				fmt.Printf("done %d\n", i)
-				lastErr = errors.New("time out")
+				deadline,_:=ctx.Deadline()
+				lastErr = ctx.Err()
+				fmt.Printf("====>GetStocksFullPriceCSV Deadline err=%v, val=%v\n", lastErr, time.Until(deadline))
 			}
+			fmt.Printf("GetStocksFullPriceCSV i=%d\n", i)
+		}()
+	}
+	// println("Finished loop")
 
-			fmt.Printf("GetStocksFullPriceCSV done=%d", i)
-			wg.Done()
-		}
-
-		// for stockFullPrice := range s.yahooApi.stockFullPriceCh {
-		// }
-	}()
 
 	for _, ticker := range tickers {
-		println(ticker)
-		s.yahooApi.stockFullPriceTickerCh <- Ticker(ticker)
-		println("send")
+		// println(ticker)
+		s.yahooApi.stockFullPriceTickerCh <- Ticker(strings.TrimSpace(ticker))
+		// println("ticker sent")
 	}
 
+	// println("waiting ... ")
 	wg.Wait()
+	// println("waiting done")
 
 	for result == "" && lastErr != nil {
 		return "", lastErr
@@ -135,6 +142,44 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 
 	return result, nil
 }
+
+func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
+	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPriceNum stock prices for %s", ticker)
+
+	// resp, err := s.yahooApi.GetSingleStockPrice(ticker)
+
+	var resp YfpriceResponse
+	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec) * time.Second); defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		// println("go YfpriceResponse")
+		select {
+		case resp = <-s.yahooApi.priceResponseCh:
+			// println("resp YfpriceResponse")
+		case err = <-s.yahooApi.priceResponseErrCh:
+			// println("priceResponseErrCh")
+			fmt.Printf("%v\n", err)
+		case <-ctx.Done():
+			deadline,_:=ctx.Deadline()
+			err = ctx.Err()
+			fmt.Printf("====>GetStocksFullPriceCSV Deadline err=%v, val=%v\n", err, time.Until(deadline))
+	}
+		wg.Done()
+	}()
+
+	s.yahooApi.tickerCh <- Ticker(ticker)
+	wg.Wait()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Price, nil
+}
+
 
 func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
 	s.yahooApi.logger.Printf("StockAPI.GetStocksPriceCSV stock prices for %s", tickersCSV)
@@ -163,40 +208,3 @@ func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
 // 	return resp.Price, nil
 // }
 
-func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
-	s.yahooApi.logger.Printf("StockAPI.GetSingleStockPriceNum stock prices for %s", ticker)
-
-	// resp, err := s.yahooApi.GetSingleStockPrice(ticker)
-
-	var resp YfpriceResponse
-	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), 3000*time.Millisecond)
-	defer cancel()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		println("go YfpriceResponse")
-		select {
-		case resp = <-s.yahooApi.priceResponseCh:
-			println("resp YfpriceResponse")
-		case err = <-s.yahooApi.priceResponseErrCh:
-			println("priceResponseErrCh")
-			fmt.Printf("%v\n", err)
-		case <-ctx.Done():
-			println("resp YfpriceResponse TO")
-			err = errors.New("time out")
-		}
-		println("go YfpriceResponse done")
-		wg.Done()
-	}()
-
-	s.yahooApi.tickerCh <- Ticker(ticker)
-	wg.Wait()
-
-	if err != nil {
-		return 0, err
-	}
-
-	return resp.Price, nil
-}

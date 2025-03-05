@@ -12,7 +12,9 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"os/signal"
 	"runtime/debug"
+	"syscall"
 )
 
 type config struct {
@@ -59,7 +61,6 @@ func main() {
 
 	rpcServer := NewRPCServer(appCtx.logger); defer rpcServer.Shutdown()
 
-
 	err := rpc.Register(rpcServer)
 	if err != nil {
 		appCtx.logger.Fatalf(`Error registering RPC server: %v`, err)
@@ -68,9 +69,22 @@ func main() {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", DEFAULT_RPC_PORT))
 	if err != nil {
 		appCtx.logger.Fatalf(`Error starting HTTP listener: %v`, err)
+	} else {
+		defer listener.Close()
 	}
 
-	defer listener.Close()
+	go awaitShutdown(rpcServer)
 
 	rpc.Accept(listener)
+}
+
+func awaitShutdown(s *RPCServer) {
+	// Wait for Ctrl-C and closeUp if happened
+	exitCh := make(chan os.Signal, 1) // terminate over Ctrl-C
+	signal.Notify(exitCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-exitCh
+		s.Shutdown()
+		os.Exit(0)
+	}()
 }
