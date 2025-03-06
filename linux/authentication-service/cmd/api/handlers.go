@@ -47,7 +47,7 @@ func (appCtx applicationContext) authenticateHandler(w http.ResponseWriter, r *h
 
 	appCtx.logger.Printf("authenticateHandler requestPayload=%+v\n", requestPayload)
 
-	user, err := appCtx.cfg.Models.User.GetByEmail(requestPayload.Email)
+	user, err := appCtx.cfg.repo.GetByEmail(requestPayload.Email)
 
 	if err != nil {
 		appCtx.logger.Printf("Bad user err=%+v\n", err)
@@ -55,7 +55,8 @@ func (appCtx applicationContext) authenticateHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	valid, err := user.PasswordMatches(requestPayload.Password)
+	// valid, err := user.PasswordMatches(requestPayload.Password)
+	valid, err := appCtx.cfg.repo.PasswordMatches(requestPayload.Password, *user)
 
 	if err != nil || !valid {
 		appCtx.logger.Printf("Bad password err=%+v, valid=%+v\n", err, valid)
@@ -101,10 +102,8 @@ func (appCtx applicationContext) traceEvent(src, via, data string) error {
 		return err
 	}
 
-	client := http.Client{}
-
-	_, err = client.Do(request)
-
+	// client := http.Client{}
+	_, err = appCtx.cfg.Client.Do(request)
 	
 	if err != nil {
 		return err

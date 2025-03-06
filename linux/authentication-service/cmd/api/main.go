@@ -17,8 +17,10 @@ import (
 
 type config struct {
 	port int
-	DB *sql.DB
-	Models data.Models
+	// DB *sql.DB
+	// Models data.Models
+	repo data.Repository
+	Client* http.Client
 }
 
 type applicationContext struct {
@@ -28,7 +30,9 @@ type applicationContext struct {
 
 func main() {
 	defaultPort := 8081
-	var appCfg config
+	appCfg :=  config {
+		Client: http.DefaultClient,
+	}
 	flag.IntVar(&appCfg.port, "port", defaultPort, "Authentication service port")
 	flag.Parse()
 
@@ -40,8 +44,10 @@ func main() {
 	}
 
 	conn := appCtx.connectToDB()
-	appCtx.cfg.DB = conn
-	appCtx.cfg.Models = data.New(conn)
+	appCfg.repo = data.NewPostgressRepository(conn)
+
+	// appCtx.cfg.DB = conn
+	// appCtx.cfg.Models = data.New(conn)
 
 	if conn == nil {
 		appCtx.logger.Panic("Failed to connect to Postgress")
@@ -97,3 +103,4 @@ func (appCtx *applicationContext) connectToDB() *sql.DB {
 
 	return nil
 }
+
