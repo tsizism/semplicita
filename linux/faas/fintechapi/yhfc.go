@@ -166,18 +166,38 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 	api.stockFullPriceCh = make(chan YffullstockpriceResponse)
 	api.stockFullPriceErrCh = make(chan error, 1)
 
+	respCache := []YffullstockpriceResponse{}
+
 	api.logger.Println("Kicking getSingleStockFullPrice goroutine")
+	go func() {
+		for  {
+			var resp YffullstockpriceResponse
+			if(len(respCache)>0) {
+				resp, respCache = respCache[0], respCache[1:] // pop from queue;pop from stack x, a = a[len(a)-1], a[:len(a)-1] 
+				fmt.Printf("Sending resp %v\n", resp)
+				api.stockFullPriceCh <- resp
+				fmt.Println("Resp sent")
+			} else {
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+	}()
+
 	go func() {
 		for ticker := range api.stockFullPriceTickerCh {
 			resp, err := api.getSingleStockFullPrice(string(ticker))
 
 			if err != nil {
-				api.stockFullPriceErrCh <- err
+			 	api.stockFullPriceErrCh <- err
+
 			} else {
-				api.stockFullPriceCh <- resp
+			 	fmt.Printf("Saving resp %v\n", resp)
+				respCache = append(respCache, resp)
+			 	fmt.Println("Resp saved")
 			}
 		}
 	}()
+
 }
 
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.

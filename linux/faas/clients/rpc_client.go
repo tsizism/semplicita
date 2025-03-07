@@ -7,6 +7,9 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"strings"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -57,7 +60,7 @@ func main() {
 	fmt.Printf("sw=%v\n", sw)
 
 	m := "BCE.TO,BCE, CM, CM.TO"
-	l := "BCE.TO,BCE, CM, CM.TO, ENB, AVGO, A, T, V, META "
+	l := "BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, FCAU"
 
 	switch sw {
 		case 1:  one(appCtx)
@@ -72,7 +75,17 @@ func many(appCtx applicationContext, tickers string) {
 	txt, err := appCtx.getStocksFullPricCSV(tickers); if err != nil {
 		unwrapErrors("getStocksFullPricCSV", appCtx.logger, err, 1)
 	}
-	fmt.Printf("Full price CSV: %s", txt)
+	// fmt.Printf("Full price CSV: %s", txt)
+	lines := strings.Split(txt, ",")
+
+	for _, line := range lines {
+		if strings.Contains(line, "+" ) {
+			color.Green(line)
+		} else {
+			color.Red(line)
+		}
+	}
+	color.Yellow("Todal=%d", len(lines))
 }
 
 func one(appCtx applicationContext) {

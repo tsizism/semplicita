@@ -31,7 +31,7 @@ type Transaction struct {
 func NewStockAPI(logger *log.Logger) IStockAPI {
 	return StockAPI{
 		yahooApi: NewYHFinanceCompleteAPI(logger),
-		reqTimeoutSec: 2,
+		reqTimeoutSec: 1,
 	}
 }
 
@@ -89,56 +89,69 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	wg.Add(count)
 	var stockFullPrice YffullstockpriceResponse
 	// sem := semaphore.NewWeighted(2)
+
+	// consumer
+
+	countdown := count
+	unclaimed := 0
 	for i := 0; i < count; i++ {
-		fmt.Println(runtime.NumGoroutine())
 		// err := sem.Acquire(context.Background(), 1); if err != nil {
 		//  	log.Fatal(err)
 		// }
 
-		go func() {
+		go func(id int) {
 			// defer sem.Release(1)
-
 			defer wg.Done()
+			defer fmt.Printf("done GetStocksFullPriceCSV id=%d, countdown=%d\n", id, countdown)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec) * time.Second); defer cancel()
+			countdown--
 
+			// select will block waiting for any messages on the channels. 
 			select {
-			case stockFullPrice = <-s.yahooApi.stockFullPriceCh:
-				// fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
-				if stockFullPrice.Price.RegularMarketChange < 0 {
-					stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
-				} else {
-					stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
+				case stockFullPrice = <-s.yahooApi.stockFullPriceCh:
+					// fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
+					if stockFullPrice.Price.RegularMarketChange < 0 {
+						stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
+					} else {
+						stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
+					}
+					stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
+					mutext.Lock()
+					result += stockInfo
+					mutext.Unlock()
+					return
+				case lastErr = <-s.yahooApi.stockFullPriceErrCh:
+					fmt.Printf("lastErr %s\n", lastErr)
+					return
+				case <-ctx.Done():
+					deadline,_:=ctx.Deadline()
+					lastErr = ctx.Err()
+					unclaimed++
+					fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d\n", lastErr, time.Until(deadline), id, unclaimed)
+					return
 				}
-				stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
-				mutext.Lock()
-				result += stockInfo
-				mutext.Unlock()
-			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
-				fmt.Printf("lastErr %s\n", lastErr)
-			case <-ctx.Done():
-				deadline,_:=ctx.Deadline()
-				lastErr = ctx.Err()
-				fmt.Printf("====>GetStocksFullPriceCSV Deadline err=%v, val=%v\n", lastErr, time.Until(deadline))
-			}
-			fmt.Printf("GetStocksFullPriceCSV i=%d\n", i)
-		}()
+		}(i)
 	}
-	// println("Finished loop")
 
-
+	// producer
 	for _, ticker := range tickers {
-		// println(ticker)
+		println("sending " + ticker)
 		s.yahooApi.stockFullPriceTickerCh <- Ticker(strings.TrimSpace(ticker))
-		// println("ticker sent")
+		println("ticker sent " + ticker)
 	}
-
-	// println("waiting ... ")
+	println("waiting ... ")
 	wg.Wait()
-	// println("waiting done")
+	println("waiting done")
+
+	fmt.Printf("unclaimed=%d, countdown=%d\n", unclaimed, countdown)
+	// for i:=0; i < unclaimed; i++ {
+	// 	<-s.yahooApi.stockFullPriceCh
+	// }
 
 	for result == "" && lastErr != nil {
 		return "", lastErr
 	}
+	fmt.Println(runtime.NumGoroutine())
 
 	return result, nil
 }
