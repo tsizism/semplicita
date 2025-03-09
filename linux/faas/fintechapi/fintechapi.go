@@ -106,7 +106,6 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 			defer cancel()
 			countdown--
 
-			// var stockFullPrice YffullstockpriceResponse
 			// select will block waiting for any messages on the channels.
 			select {
 			case stockFullPrice := <-s.yahooApi.stockFullPriceCh:
@@ -114,21 +113,23 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 				resultMutext.Lock()
 				result += createStockInfoLine(stockFullPrice, id)
 				resultMutext.Unlock()
-				// }
+				return 
 			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
 				fmt.Printf("lastErr %s\n", lastErr)
+				return
 			case <-ctx.Done():
 				deadline, _ := ctx.Deadline()
 				lastErr = ctx.Err()
 				unclaimed++
 				fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d\n", lastErr, time.Until(deadline), id, unclaimed)
+				return
 			}
 		}(i)
 	}
 
 	// producer
 	for _, ticker := range tickers {
-		println("-------->sending " + ticker)
+		// println("-------->sending " + ticker)
 		s.yahooApi.stockFullPriceTickerCh <- Ticker(strings.TrimSpace(ticker))
 		// println("ticker sent " + ticker)
 	}

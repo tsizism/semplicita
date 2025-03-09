@@ -65,7 +65,7 @@ func main() {
 	fmt.Printf("sw=%v\n", sw)
 
 	m := "BCE.TO,BCE, CM, CM.TO"
-	l := "BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, YNDX"
+	l := "AAPL, BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, YNDX"
 
 	switch sw {
 		case 1:  one(appCtx)
