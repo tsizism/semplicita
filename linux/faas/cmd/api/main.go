@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"time"
 )
 
 type config struct {
@@ -44,6 +45,9 @@ const DEFAULT_PORT = 8083
 const DEFAULT_RPC_PORT = 5003
 
 func main() {
+	s := time.Now()
+	// s := time.Now(); defer func(){t := time.Since(s).Round(time.Millisecond);fmt.Printf("FAAS duration=%s", t)}()
+	
 	print(`Starting Module`)
 	buildInfo, _ := debug.ReadBuildInfo()
 	fmt.Printf(" '%+v': defaultPort=%d ...\n", buildInfo.Main.Path, DEFAULT_PORT)
@@ -53,7 +57,7 @@ func main() {
 	// flag.Parse()
 
 	appCtx := applicationContext{
-		logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
+		logger: log.New(os.Stdout, "DEBUG\t", log.Ldate|log.Ltime),
 		cfg:    cfg,
 	}
 
@@ -73,18 +77,20 @@ func main() {
 		defer listener.Close()
 	}
 
-	go awaitShutdown(rpcServer)
+	go awaitShutdown(rpcServer, s)
 
 	rpc.Accept(listener)
 }
 
-func awaitShutdown(s *RPCServer) {
+func awaitShutdown(r *RPCServer, s time.Time) {
 	// Wait for Ctrl-C and closeUp if happened
 	exitCh := make(chan os.Signal, 1) // terminate over Ctrl-C
 	signal.Notify(exitCh, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-exitCh
-		s.Shutdown()
+		r.Shutdown()
+		t := time.Since(s).Round(time.Millisecond)
+		fmt.Printf("FAAS duration=%s", t)
 		os.Exit(0)
 	}()
 }

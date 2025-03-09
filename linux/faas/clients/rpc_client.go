@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/fatih/color"
@@ -21,9 +22,11 @@ type applicationContext struct{
 }
 
 func unwrapErrors(prfix string, logger *log.Logger, err error, deep int) {
-	fmt := "%s(%d):%v\n"
+	txtFmt := "Error: %s(%d):%v\n"
 	i := 0
-	logger.Printf(fmt, prfix, i, err)
+	txt := fmt.Sprintf(txtFmt, prfix, i, err)
+	color.HiMagenta(txt)
+	// logger.Print(txt)
 	for {
 		if deep != 0 && i >= deep-1 {
 			break
@@ -31,7 +34,9 @@ func unwrapErrors(prfix string, logger *log.Logger, err error, deep int) {
 
 		err = errors.Unwrap(err); if err != nil {
 			i++
-			logger.Printf(fmt, prfix, i, err)
+			txt = fmt.Sprintf(txtFmt, prfix, i, err)
+			color.HiMagenta(txt)
+			// logger.Print(txt)
 		} else {
 			break;
 		}
@@ -60,7 +65,7 @@ func main() {
 	fmt.Printf("sw=%v\n", sw)
 
 	m := "BCE.TO,BCE, CM, CM.TO"
-	l := "BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, FCAU"
+	l := "BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, YNDX"
 
 	switch sw {
 		case 1:  one(appCtx)
@@ -74,9 +79,12 @@ func many(appCtx applicationContext, tickers string) {
 	println("many " + tickers)
 	txt, err := appCtx.getStocksFullPricCSV(tickers); if err != nil {
 		unwrapErrors("getStocksFullPricCSV", appCtx.logger, err, 1)
+		return
 	}
 	// fmt.Printf("Full price CSV: %s", txt)
+	txt = strings.TrimSuffix(txt, ",")
 	lines := strings.Split(txt, ",")
+	slices.Sort(lines)
 
 	for _, line := range lines {
 		if strings.Contains(line, "+" ) {
@@ -85,7 +93,8 @@ func many(appCtx applicationContext, tickers string) {
 			color.Red(line)
 		}
 	}
-	color.Yellow("Todal=%d", len(lines))
+
+	color.Cyan("Total=%d", len(lines))
 }
 
 func one(appCtx applicationContext) {

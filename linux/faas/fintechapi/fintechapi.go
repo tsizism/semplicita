@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/semaphore"
 )
 
 // FintechAPI defines the interface for the fintech API
@@ -30,7 +31,7 @@ type Transaction struct {
 
 func NewStockAPI(logger *log.Logger) IStockAPI {
 	return StockAPI{
-		yahooApi: NewYHFinanceCompleteAPI(logger),
+		yahooApi:      NewYHFinanceCompleteAPI(logger),
 		reqTimeoutSec: 1,
 	}
 }
@@ -45,7 +46,7 @@ type IStockAPI interface {
 
 type StockAPI struct {
 	reqTimeoutSec int
-	yahooApi YHFinanceCompleteAPI
+	yahooApi      YHFinanceCompleteAPI
 }
 
 func (s StockAPI) Shutdown() {
@@ -82,78 +83,84 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	var lastErr error
 
 	count := len(tickers)
-	stockPriceFmt := ""
 
-	var mutext sync.Mutex 
+	var resultMutext sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(count)
-	var stockFullPrice YffullstockpriceResponse
-	// sem := semaphore.NewWeighted(2)
+	sem := semaphore.NewWeighted(5)
 
-	// consumer
-
+	fmt.Printf("______________________>NumGoroutine before=%d\n", runtime.NumGoroutine())
 	countdown := count
 	unclaimed := 0
 	for i := 0; i < count; i++ {
-		// err := sem.Acquire(context.Background(), 1); if err != nil {
-		//  	log.Fatal(err)
-		// }
+		 if err := sem.Acquire(context.Background(), 1); err != nil {
+		  	log.Fatal(err)
+		}
 
 		go func(id int) {
-			// defer sem.Release(1)
+			defer sem.Release(1)
 			defer wg.Done()
 			defer fmt.Printf("done GetStocksFullPriceCSV id=%d, countdown=%d\n", id, countdown)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec) * time.Second); defer cancel()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec)*time.Second)
+			defer cancel()
 			countdown--
 
-			// select will block waiting for any messages on the channels. 
+			// var stockFullPrice YffullstockpriceResponse
+			// select will block waiting for any messages on the channels.
 			select {
-				case stockFullPrice = <-s.yahooApi.stockFullPriceCh:
-					// fmt.Printf("stockFullPrice for= %s\n", stockFullPrice.Price.Symbol)
-					if stockFullPrice.Price.RegularMarketChange < 0 {
-						stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
-					} else {
-						stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
-					}
-					stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
-					mutext.Lock()
-					result += stockInfo
-					mutext.Unlock()
-					return
-				case lastErr = <-s.yahooApi.stockFullPriceErrCh:
-					fmt.Printf("lastErr %s\n", lastErr)
-					return
-				case <-ctx.Done():
-					deadline,_:=ctx.Deadline()
-					lastErr = ctx.Err()
-					unclaimed++
-					fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d\n", lastErr, time.Until(deadline), id, unclaimed)
-					return
-				}
+			case stockFullPrice := <-s.yahooApi.stockFullPriceCh:
+				// if stockFullPrice.Price.RegularMarketPrice > 0 {
+				resultMutext.Lock()
+				result += createStockInfoLine(stockFullPrice, id)
+				resultMutext.Unlock()
+				// }
+			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
+				fmt.Printf("lastErr %s\n", lastErr)
+			case <-ctx.Done():
+				deadline, _ := ctx.Deadline()
+				lastErr = ctx.Err()
+				unclaimed++
+				fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d\n", lastErr, time.Until(deadline), id, unclaimed)
+			}
 		}(i)
 	}
 
 	// producer
 	for _, ticker := range tickers {
-		println("sending " + ticker)
+		println("-------->sending " + ticker)
 		s.yahooApi.stockFullPriceTickerCh <- Ticker(strings.TrimSpace(ticker))
-		println("ticker sent " + ticker)
+		// println("ticker sent " + ticker)
 	}
-	println("waiting ... ")
+	// println("waiting ... ")
 	wg.Wait()
-	println("waiting done")
+	// println("waiting done")
 
 	fmt.Printf("unclaimed=%d, countdown=%d\n", unclaimed, countdown)
 	// for i:=0; i < unclaimed; i++ {
 	// 	<-s.yahooApi.stockFullPriceCh
 	// }
 
+	fmt.Printf("<<<<<<<<<<<<<<<<<<<<<<<<<NumGoroutine after=%d\n", runtime.NumGoroutine())
 	for result == "" && lastErr != nil {
 		return "", lastErr
 	}
-	fmt.Println(runtime.NumGoroutine())
+
+	fmt.Println("result->" + result)
 
 	return result, nil
+}
+
+func createStockInfoLine(stockFullPrice YffullstockpriceResponse, id int) string {
+	stockPriceFmt := ""
+	if stockFullPrice.Price.RegularMarketChange < 0 {
+		stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
+	} else {
+		stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
+	}
+	stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
+	fmt.Printf("id=%d createStockInfoLine=%s\n", id, stockInfo)
+	return stockInfo
 }
 
 func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
@@ -163,7 +170,8 @@ func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
 
 	var resp YfpriceResponse
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec) * time.Second); defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec)*time.Second)
+	defer cancel()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -176,10 +184,10 @@ func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
 			// println("priceResponseErrCh")
 			fmt.Printf("%v\n", err)
 		case <-ctx.Done():
-			deadline,_:=ctx.Deadline()
+			deadline, _ := ctx.Deadline()
 			err = ctx.Err()
 			fmt.Printf("====>GetStocksFullPriceCSV Deadline err=%v, val=%v\n", err, time.Until(deadline))
-	}
+		}
 		wg.Done()
 	}()
 
@@ -192,7 +200,6 @@ func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
 
 	return resp.Price, nil
 }
-
 
 func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
 	s.yahooApi.logger.Printf("StockAPI.GetStocksPriceCSV stock prices for %s", tickersCSV)
@@ -220,4 +227,3 @@ func (s StockAPI) GetStocksPriceCSV(tickersCSV string) (string, error) {
 // 	}
 // 	return resp.Price, nil
 // }
-
