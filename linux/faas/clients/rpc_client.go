@@ -65,25 +65,28 @@ func main() {
 	fmt.Printf("sw=%v\n", sw)
 
 	m := "BCE.TO,BCE, CM, CM.TO"
-	l := "AAPL, BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, YNDX"
+	l1 := "AAPL, BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, GRMN"
+	l2 := "GM, F, AMZN, CSCO, DELL, GE, GOOG, LOGI, MSFT, NVDA, QCOM, TSLA, ZM, GARM, YNDX"
 
 	switch sw {
 		case 1:  one(appCtx)
 		case 2:  many(appCtx, m)
-		case 3:  many(appCtx, l)
+		case 3:  many(appCtx, l1)
+		case 4:  many(appCtx, l2)
 		default: one(appCtx); many(appCtx, m)
 	}
 }
 
 func many(appCtx applicationContext, tickers string) {
 	println("many " + tickers)
-	txt, err := appCtx.getStocksFullPricCSV(tickers); if err != nil {
+	numCommas := strings.Count(tickers, ",")
+	res, err := appCtx.getStocksFullPricCSV(tickers); if err != nil {
 		unwrapErrors("getStocksFullPricCSV", appCtx.logger, err, 1)
 		return
 	}
 	// fmt.Printf("Full price CSV: %s", txt)
-	txt = strings.TrimSuffix(txt, ",")
-	lines := strings.Split(txt, ",")
+	res = strings.TrimSuffix(res, ",")
+	lines := strings.Split(res, ",")
 	slices.Sort(lines)
 
 	for _, line := range lines {
@@ -94,7 +97,7 @@ func many(appCtx applicationContext, tickers string) {
 		}
 	}
 
-	color.Cyan("Total=%d", len(lines))
+	color.Cyan("Total=%d/%d", len(lines), numCommas+1)
 }
 
 func one(appCtx applicationContext) {

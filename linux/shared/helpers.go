@@ -22,7 +22,7 @@ func ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(data)  // decode and store in data
+	err := decoder.Decode(data) // decode and store in data
 
 	if err != nil {
 		return err
@@ -68,8 +68,8 @@ func ErrorJSON(w http.ResponseWriter, err error, status ...int) error {
 		statusCode = status[0]
 	}
 
-	payload := JsonResponse  {
-		Error: true,
+	payload := JsonResponse{
+		Error:   true,
 		Message: fmt.Sprintf("err=%s, status=%d", err.Error(), statusCode),
 	}
 

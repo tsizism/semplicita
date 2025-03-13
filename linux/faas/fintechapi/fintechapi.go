@@ -12,6 +12,9 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const TIMEOUT_EXCHANGE_SEC int = 5
+const TIMOUT_HTTPREQ_MS int = 5000
+
 // FintechAPI defines the interface for the fintech API
 type AccountAPI interface {
 	CreateAccount(accountID string, initialBalance float64) error
@@ -31,8 +34,8 @@ type Transaction struct {
 
 func NewStockAPI(logger *log.Logger) IStockAPI {
 	return StockAPI{
-		yahooApi:      NewYHFinanceCompleteAPI(logger),
-		reqTimeoutSec: 1,
+		yahooApi:           NewYHFinanceCompleteAPI(logger),
+		exchangeTimeoutSec: TIMEOUT_EXCHANGE_SEC,
 	}
 }
 
@@ -45,8 +48,8 @@ type IStockAPI interface {
 }
 
 type StockAPI struct {
-	reqTimeoutSec int
-	yahooApi      YHFinanceCompleteAPI
+	exchangeTimeoutSec int
+	yahooApi           YHFinanceCompleteAPI
 }
 
 func (s StockAPI) Shutdown() {
@@ -87,22 +90,23 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	var resultMutext sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(count)
-	sem := semaphore.NewWeighted(5)
+	sem := semaphore.NewWeighted(10)
 
 	fmt.Printf("______________________>NumGoroutine before=%d\n", runtime.NumGoroutine())
 	countdown := count
 	unclaimed := 0
-	for i := 0; i < count; i++ {
-		 if err := sem.Acquire(context.Background(), 1); err != nil {
-		  	log.Fatal(err)
-		}
 
+	for i := 0; i < count; i++ {
 		go func(id int) {
+			println("Acquiring semafore id=%d", id)
+			if err := sem.Acquire(context.Background(), 1); err != nil {
+				log.Fatal(err)
+			}
 			defer sem.Release(1)
 			defer wg.Done()
 			defer fmt.Printf("done GetStocksFullPriceCSV id=%d, countdown=%d\n", id, countdown)
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec)*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.exchangeTimeoutSec)*time.Second)
 			defer cancel()
 			countdown--
 
@@ -113,7 +117,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 				resultMutext.Lock()
 				result += createStockInfoLine(stockFullPrice, id)
 				resultMutext.Unlock()
-				return 
+				return
 			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
 				fmt.Printf("lastErr %s\n", lastErr)
 				return
@@ -149,17 +153,26 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 
 	fmt.Println("result->" + result)
 
+	fmt.Println("((((((((((((((sessionEndCh))))))))))))))")
+	s.yahooApi.sessionEndCh <- true
+
 	return result, nil
 }
 
 func createStockInfoLine(stockFullPrice YffullstockpriceResponse, id int) string {
 	stockPriceFmt := ""
 	if stockFullPrice.Price.RegularMarketChange < 0 {
-		stockPriceFmt = "%s:%.2f %.2f (%.2f%%),"
+		stockPriceFmt = "%s:%.2f %.2f (%.2f%%)"
 	} else {
-		stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%),"
+		stockPriceFmt = "%s:%.2f +%.2f (+%.2f%%)"
 	}
 	stockInfo := fmt.Sprintf(stockPriceFmt, stockFullPrice.Price.Symbol, stockFullPrice.Price.RegularMarketPrice, stockFullPrice.Price.RegularMarketChange, stockFullPrice.Price.RegularMarketChangePercent*100)
+
+	// t := time.Now()
+	// stockInfo += fmt.Sprintf(" %02d:%02d", t.Second(), t.Nanosecond())
+
+	stockInfo += ","
+
 	fmt.Printf("id=%d createStockInfoLine=%s\n", id, stockInfo)
 	return stockInfo
 }
@@ -171,7 +184,7 @@ func (s StockAPI) GetSingleStockPriceNum(ticker string) (float32, error) {
 
 	var resp YfpriceResponse
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.reqTimeoutSec)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.exchangeTimeoutSec)*time.Second)
 	defer cancel()
 
 	var wg sync.WaitGroup

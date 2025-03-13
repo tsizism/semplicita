@@ -48,6 +48,7 @@ type YHFinanceCompleteAPI struct {
 	stockFullPriceTickerCh chan Ticker
 	stockFullPriceCh       chan YffullstockpriceResponse
 	stockFullPriceErrCh    chan error
+	sessionEndCh           chan bool
 }
 
 type Ticker string
@@ -63,7 +64,6 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	// tickerCh, priceResponseCh := runGetSingleStockPrice()
 
 	// Use context.WithTimeout for per-request timeouts!
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second) // time.Duration(count)
 
 	yHFinanceCompleteAPI := YHFinanceCompleteAPI{
 		// ctx: 				ctx,
@@ -76,9 +76,10 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 		cacheFileNameFmt: "%s.%s.json",
 		requestCache:     make(map[string]*http.Request),
 		invalidTickers:   make(map[string]int),
+		sessionEndCh:     make(chan bool),
 	}
 
-	const httpReqTimoutMs = 1000
+	const httpReqTimoutMs = TIMOUT_HTTPREQ_MS
 	yHFinanceCompleteAPI.httpClient.Timeout = time.Duration(httpReqTimoutMs) * time.Millisecond
 
 	yHFinanceCompleteAPI.runGetSingleStockPrice()
@@ -180,7 +181,7 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 		var resp YffullstockpriceResponse
 		var err error
 		for {
-			
+
 			if len(respCache) > 0 {
 				respMutex.Lock()
 				resp, respCache = respCache[0], respCache[1:] // pop from queue;pop from stack x, a = a[len(a)-1], a[:len(a)-1]
@@ -192,7 +193,7 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 			// } else {
 			// 	time.Sleep(10 * time.Millisecond)
 			// }
-			
+
 			if len(errCache) > 0 {
 				errMutex.Lock()
 				err, errCache = errCache[0], errCache[1:]
@@ -204,25 +205,41 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 
 	go func() {
 		for ticker := range api.stockFullPriceTickerCh {
-			resp, err := api.getSingleStockFullPrice(string(ticker))
+			go func(ticker Ticker) {
+				resp, err := api.getSingleStockFullPrice(string(ticker))
 
-			if err != nil {
-				fmt.Printf("Saving err %v\n", err)
-				errMutex.Lock()
-				errCache = append(errCache, err)
-				errMutex.Unlock()
-				fmt.Println("Error saved")
+				if err != nil {
+					fmt.Printf("Saving err %v\n", err)
+					errMutex.Lock()
+					errCache = append(errCache, err)
+					errMutex.Unlock()
+					fmt.Println("Error saved")
 
-			} else {
-				fmt.Printf("Saving resp %v\n", resp)
-				respMutex.Lock()
-				respCache = append(respCache, resp)
-				respMutex.Unlock()
-				fmt.Println("Resp saved")
-			}
+				} else {
+					fmt.Printf("Saving resp %v\n", resp)
+					respMutex.Lock()
+					respCache = append(respCache, resp)
+					respMutex.Unlock()
+					fmt.Println("Resp saved")
+				}
+			}(ticker)
 		}
 	}()
 
+	go func() {
+		for range api.sessionEndCh {
+			fmt.Printf("sessionEndCh --------------->: cache size=%d\n", len(respCache))
+
+			respMutex.Lock()
+			respCache = nil
+			respMutex.Unlock()
+
+			// for _, v := range respCache {
+			// 	fmt.Printf("%v\n", v.Price.Symbol)
+			// }
+
+		}
+	}()
 }
 
 // GetFullSingleStockPrice retrieves the full stock price information for a given stock symbol.
