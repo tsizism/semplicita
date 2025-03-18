@@ -1,0 +1,10 @@
+#kubectl apply -f pod-def.yaml
+#kubectl create -f pod-def.yaml
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nginx
+spec: 
+  containers:
+    - name: main
+      image: nginx

@@ -12,8 +12,8 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const TIMEOUT_EXCHANGE_SEC int = 5
-const TIMOUT_HTTPREQ_MS int = 5000
+const TIMEOUT_EXCHANGE_SEC int = 10
+const TIMOUT_HTTPREQ_MS int = 10 * 1000
 
 // FintechAPI defines the interface for the fintech API
 type AccountAPI interface {
@@ -79,8 +79,11 @@ func (s StockAPI) Shutdown() {
 
 func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	s.yahooApi.logger.Printf("StockAPI.GetStocksFullPriceCSV stock prices for %s", tickersCSV)
-
 	tickers := strings.Split(tickersCSV, ",")
+
+	// s.yahooApi.stockFullPriceCh = make(chan YffullstockpriceResponse)
+	// defer close(s.yahooApi.stockFullPriceCh)
+	// defer println("closing stockFullPriceCh")
 
 	result := ""
 	var lastErr error
@@ -98,7 +101,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 
 	for i := 0; i < count; i++ {
 		go func(id int) {
-			println("Acquiring semafore id=%d", id)
+			fmt.Printf("Acquiring semafore for task id=%d\n", id)
 			if err := sem.Acquire(context.Background(), 1); err != nil {
 				log.Fatal(err)
 			}
@@ -112,11 +115,17 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 
 			// select will block waiting for any messages on the channels.
 			select {
-			case stockFullPrice := <-s.yahooApi.stockFullPriceCh:
+			case stockFullPrice, ok := <-s.yahooApi.stockFullPriceCh:
 				// if stockFullPrice.Price.RegularMarketPrice > 0 {
-				resultMutext.Lock()
-				result += createStockInfoLine(stockFullPrice, id)
-				resultMutext.Unlock()
+				if ok {
+					println("********************Receiving on stockFullPriceCh")
+					resultMutext.Lock()
+					result += createStockInfoLine(stockFullPrice, id)
+					resultMutext.Unlock()
+				}
+				// } else {
+				// 	println("!!!!!!!!!!!!!!!!!!!!stockFullPriceCh closed!!!!!!!!!!!!!!!!!!!")
+				// }
 				return
 			case lastErr = <-s.yahooApi.stockFullPriceErrCh:
 				fmt.Printf("lastErr %s\n", lastErr)
@@ -125,7 +134,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 				deadline, _ := ctx.Deadline()
 				lastErr = ctx.Err()
 				unclaimed++
-				fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d\n", lastErr, time.Until(deadline), id, unclaimed)
+				fmt.Printf("====>consumer GetStocksFullPriceCSV Deadline err=%v, val=%v, id=%d unclaimed=%d, to=%v\n", lastErr, time.Until(deadline), id, unclaimed, s.exchangeTimeoutSec)
 				return
 			}
 		}(i)
@@ -147,15 +156,15 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	// }
 
 	fmt.Printf("<<<<<<<<<<<<<<<<<<<<<<<<<NumGoroutine after=%d\n", runtime.NumGoroutine())
-	for result == "" && lastErr != nil {
-		return "", lastErr
-	}
 
 	fmt.Println("result->" + result)
 
-	fmt.Println("((((((((((((((sessionEndCh))))))))))))))")
+	fmt.Println("(((((((((((((((((((((((((((((((((((((((((((sessionEndCh))))))))))))))))))))))))))))))))))))))))))))))")
 	s.yahooApi.sessionEndCh <- true
 
+	for result == "" && lastErr != nil {
+		return "", lastErr
+	}
 	return result, nil
 }
 

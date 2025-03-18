@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
@@ -59,7 +60,7 @@ func NewYHFinanceCompleteAPI(logger *log.Logger) YHFinanceCompleteAPI {
 	if err != nil {
 		log.Fatalf("os.ReadFile error: %v defined by envvar %s", err, ApiHost_ENVVAR)
 	}
-	println("--------------------->" + string(apiKey_YHFinanceCompleteAPI))
+	// println("--------------------->" + string(apiKey_YHFinanceCompleteAPI))
 
 	// tickerCh, priceResponseCh := runGetSingleStockPrice()
 
@@ -145,6 +146,22 @@ func (api YHFinanceCompleteAPI) getSingleStockPrice(ticker string) (YfpriceRespo
 
 	// client := http.DefaultClient
 	// client.Timeout = 500 * time.Millisecond
+
+	// var myHttpClient = &http.Client{
+	// 	Timeout: time.Second * 10,
+	// }
+
+	// t := http.DefaultTransport.(*http.Transport).Clone()
+	// t.MaxIdleConns = 100
+	// t.MaxConnsPerHost = 100
+	// t.MaxIdleConnsPerHost = 100
+		
+	// myHttpClient := &http.Client{
+	//   Timeout:   10 * time.Second,
+	//   Transport: t,
+	// }	
+	// resp, err := myHttpClient.Do(req)
+
 	resp, err := api.httpClient.Do(req)
 	if err != nil {
 		return jsonResponse, fmt.Errorf("DefaultClient.Do error: %w", err)
@@ -181,15 +198,15 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 		var resp YffullstockpriceResponse
 		var err error
 		for {
-
+			// respMutex.Lock()
 			if len(respCache) > 0 {
-				respMutex.Lock()
 				resp, respCache = respCache[0], respCache[1:] // pop from queue;pop from stack x, a = a[len(a)-1], a[:len(a)-1]
 				// fmt.Printf("Sending resp %v\n", resp)
-				respMutex.Unlock()
+				println("********************Sending to resp stockFullPriceCh")
 				api.stockFullPriceCh <- resp
-				fmt.Printf("+++++++++++++++++++++++Resp sent %s\n", resp.Price.Symbol)
+				fmt.Printf("+++++++++++++++++++++++Resp sent to stockFullPriceCh for Symbol=%s\n", resp.Price.Symbol)
 			}
+			// respMutex.Unlock()
 			// } else {
 			// 	time.Sleep(10 * time.Millisecond)
 			// }
@@ -204,9 +221,13 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 	}()
 
 	go func() {
+		respMutex := sync.Mutex{}
 		for ticker := range api.stockFullPriceTickerCh {
 			go func(ticker Ticker) {
+				fmt.Printf("Processing ticker recived from stockFullPriceTickerCh=%s\n", ticker)
+				respMutex.Lock()
 				resp, err := api.getSingleStockFullPrice(string(ticker))
+				respMutex.Unlock()
 
 				if err != nil {
 					fmt.Printf("Saving err %v\n", err)
@@ -219,8 +240,8 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 					fmt.Printf("Saving resp %v\n", resp)
 					respMutex.Lock()
 					respCache = append(respCache, resp)
+					fmt.Printf("Resp saved to respCache cache size %d\n", len(respCache))
 					respMutex.Unlock()
-					fmt.Println("Resp saved")
 				}
 			}(ticker)
 		}
@@ -231,7 +252,9 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 			fmt.Printf("sessionEndCh --------------->: cache size=%d\n", len(respCache))
 
 			respMutex.Lock()
+			// close(api.stockFullPriceCh)
 			respCache = nil
+			errCache  = nil
 			respMutex.Unlock()
 
 			// for _, v := range respCache {
@@ -264,7 +287,7 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(ticker string) (Yffullst
 	api.logger.Println("getSingleStockFullPrice: ticker=", ticker)
 	//  "https://yh-finance-complete.p.rapidapi.com/price?symbol=cm.to"
 
-	var jsonResponse YffullstockpriceResponse
+	var fullStockPrice YffullstockpriceResponse
 	// jsonResponse := YffullstockpriceResponse{}
 	// jsonResponse.Price.Symbol = ticker
 
@@ -272,12 +295,13 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(ticker string) (Yffullst
 	if ok { //&& invalidTickerCnt % 100 != 0
 		invalidTickerCnt++
 		api.invalidTickers[ticker] = invalidTickerCnt
-		api.logger.Printf("getSingleStockFullPrice: '%s' ticker ided as invalid cnt=%d, skipping retrival\n", ticker, invalidTickerCnt)
-		return jsonResponse, fmt.Errorf("invalid ticker %s(from cache) %d", ticker, invalidTickerCnt)
+		api.logger.Printf("getSingleStockFullPrice: '%s' ticker (from cache) identified as invalid cnt=%d, skipping retrival\n", ticker, invalidTickerCnt)
+		api.logger.Printf("================Invalid ticker cache %v\n", api.invalidTickers)
+		return fullStockPrice, fmt.Errorf("invalid ticker %s(from cache) %d", ticker, invalidTickerCnt)
 	}
 
 	if ticker == "" {
-		return jsonResponse, fmt.Errorf("ticker is empty")
+		return fullStockPrice, fmt.Errorf("ticker is empty")
 	}
 
 	queryParams := url.Values{"symbol": {ticker}}
@@ -286,19 +310,40 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(ticker string) (Yffullst
 	req, err := api.buildRequest("price", queryParams)
 	if err != nil {
 		api.logger.Printf("buildRequest error: %v", err)
-		return jsonResponse, fmt.Errorf("buildRequest error: %w", err)
+		return fullStockPrice, fmt.Errorf("buildRequest error: %w", err)
 		// return jsonResponse, nil
 	}
+
+	fmt.Printf("---------------------------->httpClient.Do: URL = %v\n", req.URL)
+
+	// var myHttpClient = &http.Client{
+	//  	Timeout: time.Second * 100,
+	// }
+
+	// t := http.DefaultTransport.(*http.Transport).Clone()
+	// t.MaxIdleConns = 100
+	// t.MaxConnsPerHost = 100
+	// t.MaxIdleConnsPerHost = 100
+		
+	// myHttpClient := &http.Client{
+	//   Timeout:  100 * time.Second,
+	//   Transport: t,
+	// }	
+	// resp, err := myHttpClient.Do(req)
 
 	resp, err := api.httpClient.Do(req)
 	if err != nil {
 		fmt.Printf("httpClient Do error: %v\n", err)
-		return jsonResponse, fmt.Errorf("httpClient Do error: %w", err)
+		return fullStockPrice, fmt.Errorf("httpClient Do error: %w", err)
 	}
 
 	defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
+	dump, _ := httputil.DumpResponse(resp, true)
+	fmt.Printf("----------------------->url=%s, %q\n", req.URL, dump)  // %q to safely escape a string and add quotes to it.
+
+
+	if err := json.NewDecoder(resp.Body).Decode(&fullStockPrice); err != nil {
 		// dump, _ := httputil.DumpResponse(resp, true)
 		// fmt.Printf("----------------------->%q\n", dump)
 
@@ -307,23 +352,24 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(ticker string) (Yffullst
 		if len(body) == 0 {
 			api.invalidTickers[ticker] = 1
 			err = fmt.Errorf("invalid ticker %s", ticker)
-			api.logger.Printf("invalid ticker %s", ticker)
+			api.logger.Printf("--------------->invalid ticker %s", ticker)
 
 		} else {
 			api.logger.Printf("json.Decode response body error %s", ticker)
 			err = fmt.Errorf("json.Decode response body error: %w", err)
 		}
 
-		return jsonResponse, err
+		return fullStockPrice, err
 	}
 
-	if jsonResponse.Price.Symbol == "" {
-		return jsonResponse, fmt.Errorf("symbol in response is empty")
+	if fullStockPrice.Price.Symbol == "" {
+		return fullStockPrice, fmt.Errorf("symbol in response is empty")
 	}
 
-	fmt.Printf("getSingleStockFullPrice resp=%v\n", jsonResponse)
+	// fmt.Printf("getSingleStockFullPrice resp=%v\n", fullStockPrice)
+	api.logger.Printf("getSingleStockFullPrice resp for symbol=%s, ticker=%s\n", fullStockPrice.Price.Symbol, ticker)
 
-	return jsonResponse, nil
+	return fullStockPrice, nil
 }
 
 // buildRequest constructs an HTTP request for the YHFinanceCompleteAPI.
@@ -338,7 +384,7 @@ func (api YHFinanceCompleteAPI) getSingleStockFullPrice(ticker string) (Yffullst
 //   - *http.Request: A pointer to the constructed HTTP request.
 //   - error: An error object if an error occurs during the request creation.
 func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Values) (*http.Request, error) { // context.CancelFunc
-	api.logger.Printf("buildRequest: subDir=%s %+v\n", subDir, queryParams)
+	// api.logger.Printf("buildRequest: subDir=%s %+v\n", subDir, queryParams)
 
 	// fmt.Printf("YHFinanceCompleteAPI.go: yhfhistoricalDecode ticker=%s,sdate=%s,edate=%s\n", ticker, sdate, edate)
 
@@ -350,7 +396,7 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 	var exists bool
 	// ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second) ///;	defer cancel()
 	if request, exists = api.requestCache[subDir]; !exists {
-		api.logger.Printf("buildRequest: creating new request for =%s\n", subDir)
+		// api.logger.Printf("buildRequest: creating new request for =%s\n", subDir)
 		var err error
 
 		// ctx, cancel := context.WithTimeout(context.Background(), 2 * time.Second);	defer cancel()
@@ -370,8 +416,8 @@ func (api YHFinanceCompleteAPI) buildRequest(subDir string, queryParams url.Valu
 		request.Header.Add("x-rapidapi-host", api.apiHost)
 		request.Header.Add("x-rapidapi-key", api.apiKey)
 		// api.logger.Printf("x-rapidapi-key='%s'\n", api.apiKey)
-	} else {
-		api.logger.Printf("buildRequest: pulled request from cache") //=%v\n", request)
+	// } else {
+	// 	api.logger.Printf("buildRequest: pulled request from cache") //=%v\n", request)
 	}
 
 	requestUrl := fmt.Sprintf("%s/%s?", api.urlDomain, subDir)

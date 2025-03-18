@@ -4,6 +4,7 @@ package main
 
 //Tools environment: GOPATH=C:\Users\tsizi\go, GOTOOLCHAIN=auto
 //$env:GOPATH
+//GOPROXY
 //C:\Users\tsizi\go
 
 import (

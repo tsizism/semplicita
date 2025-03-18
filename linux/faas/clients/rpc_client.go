@@ -64,7 +64,7 @@ func main() {
 	flag.Parse()
 	fmt.Printf("sw=%v\n", sw)
 
-	m := "BCE.TO,BCE, CM, CM.TO"
+	m := "CSCO,BB.TO,BRK-A,BTC-USD"
 	l1 := "AAPL, BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, GRMN"
 	l2 := "GM, F, AMZN, CSCO, DELL, GE, GOOG, LOGI, MSFT, NVDA, QCOM, TSLA, ZM, GARM, YNDX"
 
