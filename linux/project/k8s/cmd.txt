@@ -1,0 +1,30 @@
+# curl_test.sh
+for i in {1..20}; do
+   kubectl exec --namespace=kube-public curl -- sh -c 'test=`wget -qO- -T 2  http://webapp-service.default.svc.cluster.local:8080/ready 2>&1` && echo "$test OK" || echo "Failed"';
+   echo ""
+done
+
+
+kubectl exec --namespace=kube-public curl -- wget -qO- http://webapp-service.default.svc.cluster.local:8080/crash
+
+nohup kubectl exec --namespace=kube-public curl -- wget -qO- http://webapp-service.default.svc.cluster.local:8080/freeze &
+
+
+Metrics:
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+
+Various k8s cluster info 
+    6  kubectl get nodes -o wide | awk '{print $8,$9,$10,$11}'
+    8  kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.kubeletVersion}'
+    9  kubectl get ns kube-system -o jsonpath='{.metadata.labels.kubernetes\.io/metadata}'
+   19  kubectl get nodes -o json | jq '.items[].status.nodeInfo'
+   21  kubectl cluster-info
+   22  kubectl get nodes -o jsonpath='{.items[*].metadata.annotations}'
+   23  kubectl get pods -n kube-system -o wide
+   24  kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath="{.items[*].spec.containers[*].command}"
+   25  kubectl api-resources | grep -i openshift
+   26  kubectl get pods -n kube-system
+   27  kubectl get nodes --show-labels
+   28  kubectl get nodes -o json | jq '.items[].metadata.labels."node.kubernetes.io/instance-type"'

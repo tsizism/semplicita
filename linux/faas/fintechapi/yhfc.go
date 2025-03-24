@@ -198,18 +198,17 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 		var resp YffullstockpriceResponse
 		var err error
 		for {
-			// respMutex.Lock()
+			respMutex.Lock()
 			if len(respCache) > 0 {
 				resp, respCache = respCache[0], respCache[1:] // pop from queue;pop from stack x, a = a[len(a)-1], a[:len(a)-1]
 				// fmt.Printf("Sending resp %v\n", resp)
 				println("********************Sending to resp stockFullPriceCh")
 				api.stockFullPriceCh <- resp
 				fmt.Printf("+++++++++++++++++++++++Resp sent to stockFullPriceCh for Symbol=%s\n", resp.Price.Symbol)
+			} else {
+			 	time.Sleep(10 * time.Millisecond)
 			}
-			// respMutex.Unlock()
-			// } else {
-			// 	time.Sleep(10 * time.Millisecond)
-			// }
+			respMutex.Unlock()
 
 			if len(errCache) > 0 {
 				errMutex.Lock()
@@ -221,13 +220,13 @@ func (api *YHFinanceCompleteAPI) runGetSingleStockFullPrice() {
 	}()
 
 	go func() {
-		respMutex := sync.Mutex{}
+		respMutex2 := sync.Mutex{}
 		for ticker := range api.stockFullPriceTickerCh {
 			go func(ticker Ticker) {
 				fmt.Printf("Processing ticker recived from stockFullPriceTickerCh=%s\n", ticker)
-				respMutex.Lock()
+				respMutex2.Lock()
 				resp, err := api.getSingleStockFullPrice(string(ticker))
-				respMutex.Unlock()
+				respMutex2.Unlock()
 
 				if err != nil {
 					fmt.Printf("Saving err %v\n", err)

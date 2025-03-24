@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2025-03-23T23:39:28Z"
+  name: curl
+  namespace: kube-public
+  resourceVersion: "1367"
+  uid: f4d05ebf-58de-4d78-bbfc-bb76b870d364
+spec:
+  containers:
+  - command:
+    - sleep
+    - "5000"
+    image: byrnedo/alpine-curl:latest
+    imagePullPolicy: Always
+    name: alpine-curl
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-8lkrk
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: controlplane
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-8lkrk
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2025-03-23T23:39:30Z"
+    status: "True"
+    type: PodReadyToStartContainers
+  - lastProbeTime: null
+    lastTransitionTime: "2025-03-23T23:39:28Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2025-03-23T23:39:30Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2025-03-23T23:39:30Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2025-03-23T23:39:28Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: containerd://2e2232e67d0f2f1ed2531f1e1a96a56e33e166cfe1b02883070c4cd9549ca0da
+    image: docker.io/byrnedo/alpine-curl:latest
+    imageID: docker.io/byrnedo/alpine-curl@sha256:1800cccd1cdb14d6dccb342a924945a79c89efcc878dd58f4defab614846c9a1
+    lastState: {}
+    name: alpine-curl
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2025-03-23T23:39:29Z"
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-8lkrk
+      readOnly: true
+      recursiveReadOnly: Disabled
+  hostIP: 192.168.65.251
+  hostIPs:
+  - ip: 192.168.65.251
+  phase: Running
+  podIP: 172.17.0.4
+  podIPs:
+  - ip: 172.17.0.4
+  qosClass: BestEffort
+  startTime: "2025-03-23T23:39:28Z"
+  

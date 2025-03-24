@@ -91,8 +91,8 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 	count := len(tickers)
 
 	var resultMutext sync.Mutex
-	var wg sync.WaitGroup
-	wg.Add(count)
+	var syncWg sync.WaitGroup
+	syncWg.Add(count)
 	sem := semaphore.NewWeighted(10)
 
 	fmt.Printf("______________________>NumGoroutine before=%d\n", runtime.NumGoroutine())
@@ -106,7 +106,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 				log.Fatal(err)
 			}
 			defer sem.Release(1)
-			defer wg.Done()
+			defer syncWg.Done()
 			defer fmt.Printf("done GetStocksFullPriceCSV id=%d, countdown=%d\n", id, countdown)
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.exchangeTimeoutSec)*time.Second)
@@ -147,7 +147,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 		// println("ticker sent " + ticker)
 	}
 	// println("waiting ... ")
-	wg.Wait()
+	syncWg.Wait()
 	// println("waiting done")
 
 	fmt.Printf("unclaimed=%d, countdown=%d\n", unclaimed, countdown)
