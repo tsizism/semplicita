@@ -1,3 +1,14 @@
+alias kgp='k get pods -A -o wide'; alias kga='k get all -A -o wide'; alias ll='ls -alF'
+alias kgy='f(){ k get  "$1" -o yaml | more; }; f'
+
+alias kga='k get all'
+alias kgy='k get pods "$@" -o yaml | more'
+
+
+kgy pod/frontend-6765b99794-4wp46
+
+
+
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias grep='grep --color=auto'
@@ -6,6 +17,9 @@ alias l='ls -CF'
 alias la='ls -A'
 alias ll='ls -alF'
 alias ls='ls --color=auto'
+
+alias lines='--no-headers | wc -l'
+
 
 
 -='cd -'

@@ -1,0 +1,139 @@
+# To create a Role:- kubectl create role developer --namespace=default --verb=list,create,delete --resource=pods
+# To create a RoleBinding:- kubectl create rolebinding dev-user-binding --namespace=default --role=developer --user=dev-user
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "create","delete"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dev-user-binding
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+  ---
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: "2025-03-30T01:21:29Z"
+  name: developer
+  namespace: blue
+  resourceVersion: "4205"
+  uid: 02fe9fae-6093-4885-a2a5-7aeefe3e117a
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - dark-blue-app
+  resources:
+  - pods
+  verbs:
+  - get
+  - watch
+  - create
+  - delete
+
+
+# A set of new roles and role-bindings are created in the blue namespace for the dev-user. 
+# However, the dev-user is unable to get details of the dark-blue-app pod in the blue namespace. 
+# Investigate and fix the issue.
+# We have created the required roles and rolebindings, but something seems to be wrong.
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+  namespace: blue
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - dark-blue-app
+  resources:
+  - pods
+  verbs:
+  - get
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+
+
+  --------
+
+  kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: node-admin
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: michelle-binding
+subjects:
+- kind: User
+  name: michelle
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-admin
+  apiGroup: rbac.authorization.k8s.io
+
+
+  -------------
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleRole
+metadata:
+  name: storage-admin
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["persistentvolumes"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+- apiGroups: ["storage.k8s.io"] # "" indicates the core API group
+  resources: ["storageclasses"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: michelle-storage-admin
+subjects:
+- kind: User
+  name: michelle
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: storage-admin
+  apiGroup: rbac.authorization.k8s.io

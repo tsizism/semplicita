@@ -66,13 +66,14 @@ func main() {
 
 	m := "CSCO,BB.TO,BRK-A,BTC-USD"
 	l1 := "AAPL, BCE.TO,BCE, CM, CM.TO, ENB, ENB.TO, AVGO, A, T, V, META,X, CAD=X, CADUSD=X, INTC, IBM, SHOP.TO, FCAU, GRMN"
-	l2 := "GM, F, AMZN, CSCO, DELL, GE, GOOG, LOGI, MSFT, NVDA, QCOM, TSLA, ZM, GARM, YNDX"
+	l2 := "GM, F, AMZN, CSCO, DELL, GE, GOOG, LOGI, MSFT, NVDA, QCOM, TSLA, ZM, YNDX"
 
 	switch sw {
 		case 1:  one(appCtx)
 		case 2:  many(appCtx, m)
 		case 3:  many(appCtx, l1)
 		case 4:  many(appCtx, l2)
+		case 5:  many(appCtx, m+l1+l2)
 		default: one(appCtx); many(appCtx, m)
 	}
 }

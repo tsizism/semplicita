@@ -1,0 +1,71 @@
+In Kubernetes, the association between the Linux `root` user and the `kubernetes-admin` role is typically established through 
+the **Kubeconfig file** and **RBAC (Role-Based Access Control)**.
+
+### 1. **Kubeconfig File (`/etc/kubernetes/admin.conf`)**
+When you set up a Kubernetes cluster using `kubeadm`, it generates an administrative Kubeconfig file at:
+
+```
+/etc/kubernetes/admin.conf
+```
+
+This file contains credentials (client certificate and key) for the `kubernetes-admin` user. 
+Since the `root` user has access to this file by default, any command run with `kubectl` as `root` uses these credentials and is associated with the `kubernetes-admin` role.
+
+To check this, run:
+```bash
+kubectl config view --kubeconfig=/etc/kubernetes/admin.conf
+```
+
+### 2. **RBAC (Role-Based Access Control)**
+In Kubernetes, `kubernetes-admin` is a cluster-wide privileged user. This is enforced through RBAC:
+
+- The `kubernetes-admin` user (from `admin.conf`) is **bound** to the `cluster-admin` **ClusterRole**.
+- The `ClusterRoleBinding` named `kubeadm:kubernetes-admin` links the `kubernetes-admin` user to `cluster-admin`.
+
+To verify this binding:
+```bash
+kubectl get clusterrolebinding kubeadm:kubernetes-admin -o yaml
+```
+You should see something like:
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeadm:kubernetes-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: kubernetes-admin
+```
+
+### 3. **How Linux `root` Uses This Association**
+By default:
+- The `root` user has access to `/etc/kubernetes/admin.conf`.
+- `kubectl` defaults to using this Kubeconfig when run as `root`.
+
+So when `root` runs:
+```bash
+kubectl get nodes
+```
+It reads `admin.conf`, uses the `kubernetes-admin` credentials, and authenticates with cluster-admin privileges.
+
+### 4. **Non-root Users Access**
+If a non-root user wants to act as `kubernetes-admin`, they need access to `admin.conf`. 
+This can be done by copying the config:
+```bash
+mkdir -p $HOME/.kube
+sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+This allows them to use `kubectl` as `kubernetes-admin` without being `root`.
+
+### Summary
+- Kubernetes uses the **Kubeconfig file (`admin.conf`)** for authentication.
+- `kubernetes-admin` is granted **cluster-wide admin access** via **RBAC**.
+- The `root` user has access to `admin.conf` by default, making it act as `kubernetes-admin` when using `kubectl`.
+
+Would you like any clarifications or additional details? 🚀

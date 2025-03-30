@@ -109,6 +109,7 @@ func (s StockAPI) GetStocksFullPriceCSV(tickersCSV string) (string, error) {
 			defer syncWg.Done()
 			defer fmt.Printf("done GetStocksFullPriceCSV id=%d, countdown=%d\n", id, countdown)
 
+			// we should wait here till ticker delivered to the Stock API
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.exchangeTimeoutSec)*time.Second)
 			defer cancel()
 			countdown--

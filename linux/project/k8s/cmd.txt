@@ -28,3 +28,9 @@ Various k8s cluster info
    26  kubectl get pods -n kube-system
    27  kubectl get nodes --show-labels
    28  kubectl get nodes -o json | jq '.items[].metadata.labels."node.kubernetes.io/instance-type"'
+
+
+Why would you use the kompose up command as opposed to kompose convert?
+If you want to convert docker-compose YAML files and deploy to Kubernetes simultaneously.
+
+

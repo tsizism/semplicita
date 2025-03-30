@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: internal-policy
+    namespace: default
+  spec:
+    podSelector:
+      matchLabels:
+        name: internal
+    policyTypes:
+    - Egress
+    - Ingress
+    ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            name: internal
+      ports:
+      - port: 8080
+        protocol: TCP
+    podSelector:
+      matchLabels:
+        name: payroll
+    egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            name: payroll
+      ports:
+      - port: 8080
+        protocol: TCP
+    - to:
+      - podSelector:
+          matchLabels:
+            name: mysql
+      ports:
+      - port: 3306
+        protocol: TCP
+
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+        
+
+# controlplane ~ ➜  k get svc -n kube-system 
+# NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+# kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   65m        

@@ -1,0 +1,59 @@
+https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0
+
+In Kubernetes, a Service is an abstraction that defines a logical set of Pods and a policy 
+by which to access them, this kind of patterns is also sometimes called a micro-service.
+
+A Service definition specifies the port number that the Service will listen on for incoming traffic using the port field. 
+The Service uses this port to route traffic to the pods it’s responsible for.
+
+In a Service definition, the targetPort field plays a crucial role in routing traffic to the Service‘s pods. 
+targetPortis set to the pod’s port number that the Service is responsible for routing traffic to. 
+
+The **ClusterIP service called "kubernetes"** is an internal service automatically created by Kubernetes in every cluster. It provides a stable endpoint for communication with the Kubernetes API server.
+
+### **Purpose of the "kubernetes" ClusterIP Service:**
+1. **API Server Access:**  
+   - It allows pods within the cluster to communicate with the Kubernetes API server using a consistent, internal service name (`kubernetes.default.svc`).
+   - Instead of using a direct IP (which may change), pods can always reach the API server via this service.
+
+2. **Service Discovery:**  
+   - The service is automatically registered in the cluster's DNS as `kubernetes.default.svc`, making it easy for applications (like controllers, operators, and custom workloads) to interact with Kubernetes APIs.
+
+3. **Internal Cluster Networking:**  
+   - The ClusterIP ensures that even if the API server runs on multiple nodes (in an HA setup), the requests from inside the cluster can still reach it.
+
+### **Example: Checking the Kubernetes Service**
+To see this service in your cluster, run:
+```sh
+kubectl get svc kubernetes -n default
+```
+Typical output:
+```
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   50d
+```
+
+- `ClusterIP`: A fixed internal IP (e.g., `10.96.0.1`) that routes traffic to the API server.
+- `Port 443`: The default HTTPS port for secure API communication.
+
+### **Usage in Pods**
+If a pod needs to communicate with the API server, it can use:
+```sh
+curl -k https://kubernetes.default.svc/api
+```
+Or in a Go application:
+```go
+apiServer := "https://kubernetes.default.svc"
+```
+
+### **Conclusion**
+The `kubernetes` ClusterIP service is essential for internal communication between workloads and the Kubernetes API, enabling automation, service discovery, and seamless API access. 🚀
+
+
+Container port is defined in the Dockerfile and represents the port that the application running in the container is listening to, whereas the 
+Service   port is the port that the Kubernetes Service listens to and forwards traffic to the Pods based on the selector.
+
+
+What is correct about using Services in Kubernetes? -- The iptables proxy mode has an affect on clients passing with a load balancer.
+
+

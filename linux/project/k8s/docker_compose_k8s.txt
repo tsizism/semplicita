@@ -1,0 +1,10 @@
+
+
+You have a docker-compose.yml file which cannot be used with the kubectl command. 
+How would you process the file to run with the kubectl command?
+Run kompose convert followed by kubectl apply -f <files>.
+
+
+Why would you use the kompose up command as opposed to kompose convert?
+If you want to check the availability of resources Kubernetes will build before deploying them with convert.
+

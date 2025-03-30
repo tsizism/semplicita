@@ -1,0 +1,125 @@
+Microservices
+In Kubernetes, a Service is an abstraction that defines a logical set of Pods 
+and a policy by which to access them, this kind of patterns is also sometimes called a micro-service.
+
+Cache the consolidated response at the API gateway level.
+
+Loose coupling and high cohesion
+
+https://microservices.io/patterns/
+
+https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis
+
+https://en.wikipedia.org/wiki/Defense_in_depth_(computing)
+
+A microservice that is not idempotent means that repeating the same request to it will result in a different state 
+or outcome than if the request was only made once. 
+This can lead to problems like duplicate data or unintended side effects, 
+especially in distributed systems where retries and failures are common. 
+
+Implement multiple API gateways and apply the backend-for-frontend pattern to customize gateways for specific client needs.
+
+What can you use an API gateway in a microservices cloud deployment for?
+To provide rate limiting and authorization to both internal and external requests
+
+Micro frontend architecture
+
+Impose back pressure to limit the number of messages in the queue.
+
+You use the     service instance per container microservices deployment pattern 
+rather than the service instance per virtual machine (VM)    deployment pattern. 
+What is a benefit? -- In general, containers have faster startup times than VMs.
+
+
+
+How does a reverse proxy use a health check endpoint?
+It removes failing nodes from the load balancer.
+
+In a microservices architecture, a microservice processes commands asynchronously. 
+What is a reliable approach to ensure that commands are not lost if the microservice encounters a database deadlock?
+Use the transactional outbox pattern to ensure message delivery.
+
+
+ You have a micro frontend web solution that is experiencing responsiveness issues on mobile phones. 
+ What is a likely cause of this problem? -- The solution uses inline frames (iframes) for composition.
+
+ What are the principles of reactive systems? -- Responsive, resilient, elastic, and message-driven
+
+You are diagnosing a micro frontend's application. 
+The first page takes longer to load than a comparable web app. What is the cause?
+Each micro frontend bundles its framework instead of sharing assets.
+
+
+mutual Transport Layer Security (mTLS) ==  mutual authentication
+
+
+.NET microservices
+
+Integrate Azure Application Gateway -  decrypting the SSL traffic a single-tier 
+Two APIs be contained within a single microservice when they share a backend database. 
+
+What is a key characteristic of log entries in microservice-based applications?  -- A correlation id that spans the microservices
+
+
+What role does the concept of bounded context play in designing a data store for a microservice?
+It defines the scope of the data that will be persisted in the data store.
+Bounded context - data that will be persisted in the data store
+
+Microservice - An autonomous service-based application modeled around a single business domain.
+The functionality of a microservice should be organized around a business capability.
+
+
+Stateless service - authorization tokens are not stored in memory but rather in a database that services have access to.
+
+
+Synthetic Transaction Monitoring (STM) is a proactive approach used to measure and test the performance, functionality, 
+and user interaction experience of a web application or service. Unlike traditional monitoring that relies on real-user data,
+STM creates and uses “synthetic” or simulated transactions to replicate user behaviors or actions on a website or within a web application.
+
+Cache the consolidated response at the API gateway level.
+
+To update that should affect multiple tables in a single transaction -- Use a database transaction to encapsulate the updates.
+
+What challenge in microservices design is addressed by the notion of a bounded context? -- Size of the domain model of the microservice
+
+Persistence stores can be in whatever technology is best suited for each microservice.
+Data within an individual microservice should not be directly accessed by anything outside of that microservice.
+Route versioning is API versioning that can be seen within the path of the URL in an HTTP request
+Distributed system - a set of independent software components (nodes) that are connected to accomplish a user goal
+Use an API Gateway for communication with your microservices and ensure that the microservice only receives valid requests originating from the API Gateway.
+
+
+According to the Kubernetes API conventions, API group is a set of resources that are exposed together
+
+
+Container Patterns
+https://adil.medium.com/multi-container-patterns-in-kubernetes-adapter-ambassador-sidecar-40bddbe7c468
+
+Init Container
+The init containers are executed in a sequence before your primary or application containers start. 
+On the other hand, any application containers have a non-deterministic startup order, 
+so you can't use them for the initialization type of work.
+https://learncloudnative.com/blog/2020-09-26-init-containers  
+
+Ambassador container
+Secondary container functions as a proxy.
+https://learncloudnative.com/blog/2020-10-03-ambassador-pattern
+The ambassador container pattern aims to hide the primary container's complexity and 
+provide a unified interface through which the primary container can access services outside of the Pod.
+EG:
+You can use an ambassador container as a secondary container in the Pod, 
+launching a proxy application that is forwarding requests from the localhost 
+connection to a remote Redis server.
+
+
+
+Sidecar Container
+The secondary container enhances the functionality of the primary container.
+https://learncloudnative.com/blog/2020-09-30-sidecar-container
+The sidecar container aims to add or augment an existing container's functionality without changing the container. 
+In comparison to the init container, we discussed previously, the sidecar container starts and runs simultaneously
+as your application container. The sidecar is just a second container you have in your container list, 
+and the startup order is not guaranteed.
+
+Adapter
+The adapter container pattern’s main function is to manipulate the application’s output or logs.

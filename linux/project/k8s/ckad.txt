@@ -1,0 +1,42 @@
+https://trainingportal.linuxfoundation.org/learn/dashboard
+
+https://medium.com/@shafath.001/mastering-ckad-a-journey-through-the-certified-kubernetes-application-developer-exam-500e8e0faa3c
+
+Set Shortcuts (add 5 alias and 2 export)
+
+alias kn=’k config set-context — current — namespace ‘
+This sets the namespace e.g ‘kn default’ switches to default namespace.
+
+alias kc=’k config get-contexts’
+It gives you the current context. Remember, for all the questions you need to setup the cluster and context according to the question instruction.
+
+alias kg=’k get’
+To get any resource information
+
+alias ka=”kubectl apply -f”
+To create resource. There will be times you need to create resource from yaml file.
+
+alias ke=”kubectl explain — recursive”
+It helps to find details of field/schema of resources.
+
+export dr=’--dry-run=client -o yaml’
+To generate a yaml file from imperative command. Very very useful.
+
+export now=”--grace-period 0 -force”
+Use this to terminate the running resource
+
+Setup .vimrc
+Edit .vimrc and add the following for better edit experience with Vim
+
+autocmd FileType yaml setlocal et ts=2 ai sw=2 sts=2
+
+-----vi
+i — Inserting before the cursor
+ZZ — save and exit (equivalent to :wq)
+dd — delete the line
+V — select lines (you can use arrow sign)
+> — indent right (after selecting lines)
+< — indent left (after selecting lines)
+A — go and edit at end of line
+I — got and edit at beginning of line
+D — deleting text from the cursir to the end of the selected line

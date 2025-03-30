@@ -1,3 +1,6 @@
+Docker solves potential problems when faced with the deployment of microservices 
+by defining the services' required dependencies in a container image
+
 latitude=192.168.2.200 - wrk
 amd=201 - wkr
 asus=202 -  wkr
