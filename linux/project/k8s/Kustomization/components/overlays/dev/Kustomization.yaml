@@ -1,0 +1,7 @@
+bases:
+  - ../../base
+
+components:
+  - ../../components/auth
+  - ../../components/db
+  - ../../components/logging

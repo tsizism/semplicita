@@ -1,0 +1,30 @@
+resources:
+  - mongo-depl.yaml
+  - nginx-depl.yaml
+  - mongo-service.yaml
+
+patches:
+  - target:
+      kind: Deployment
+      name: nginx-deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+
+  - target:
+      kind: Deployment
+      name: mongo-deployment
+    path: mongo-label-patch.yaml
+
+  - target:
+      kind: Service
+      name: mongo-cluster-ip-service
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/port
+        value: 30000
+
+      - op: replace
+        path: /spec/ports/0/targetPort
+        value: 30000

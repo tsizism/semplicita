@@ -1,0 +1,4 @@
+resources:
+  - api-deployment.yaml
+  - db-configMap.yaml
+  - mongo-depl.yaml

@@ -1,0 +1,159 @@
+#controlplane ~ ➜  cat webhook-deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+  labels:
+    app: webhook-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-server
+  template:
+    metadata:
+      labels:
+        app: webhook-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1234
+      containers:
+      - name: server
+        image: stackrox/admission-controller-webhook-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /run/secrets/tls
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls
+---
+#controlplane ~ ➜  cat webhook-service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+spec:
+  selector:
+    app: webhook-server
+  ports:
+    - port: 443
+      targetPort: webhook-api
+---
+#controlplane ~ ➜  cat webhook-configuration.yaml 
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: demo-webhook
+webhooks:
+  - name: webhook-server.webhook-demo.svc
+    clientConfig:
+      service:
+        name: webhook-server
+        namespace: webhook-demo
+        path: "/mutate"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQekNDQWllZ0F3SUJBZ0lVZEJGaFlqSUc4cE1oUkRyRjd6dWYvRHFVNndVd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0x6RXRNQ3NHQTFVRUF3d2tRV1J0YVhOemFXOXVJRU52Ym5SeWIyeHNaWElnVjJWaWFHOXZheUJFWlcxdgpJRU5CTUI0WERUSTFNRE16TVRBd01EZzFNVm9YRFRJMU1EUXpNREF3TURnMU1Wb3dMekV0TUNzR0ExVUVBd3drClFXUnRhWE56YVc5dUlFTnZiblJ5YjJ4c1pYSWdWMlZpYUc5dmF5QkVaVzF2SUVOQk1JSUJJakFOQmdrcWhraUcKOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQW1tOVplQTVmZzIrb3F0NUJDcXJQeitPT3RZUzBVUDBob2RGSAp2dENDa2Zrdkc0YmJSbXIyY1BCNmdBa0dwemRNRDk4b2JTN3I4bkg5ZGZpdjJ3S0JEMUluUlY4ZnVxcjZ4Tkd0Ci9tdGV4NnFPOHduSVZwZit4a2dxY0tKcGt0RVl5SDBaczdTcTBPYXFCRit1RmhpNkVrc2tCV1g0NG11SVVPTnUKKzNycy84Vy81Nk1CNEdYZ2R2MUVrQ0x0US9kTGtuVDVhbldWcy9Mak8zZXZkMW9tQnFQTGFPdVczN2lQN29tRApySzcrclRuL3lZTjB3Y2UxYXpFK0Jzcm04RlZEZ2pVNFdBNkxrMXpJemJ5VXAwZnBZRUhia0JEWjlkRS9CaTd2Cmx5a1FveFVxYTFqVmVER2tsSlJQNlhZbHZxTDMxQVhtMmFkcUMzRVNac29uSmF6OHpRSURBUUFCbzFNd1VUQWQKQmdOVkhRNEVGZ1FVMWlhYzVkdEtRbTVncE5uZjF6a2ZGSDRIK040d0h3WURWUjBqQkJnd0ZvQVUxaWFjNWR0SwpRbTVncE5uZjF6a2ZGSDRIK040d0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DCkFRRUFZSzd4Y3lGQWRVNndta3o1TnVjVjQ4Z1Q4cWl5TVNDb2JxWmpiUFZ6bzh0RXhGRytRVDZtdXlLSnZ2SkgKU0ZDdkRDRFlLMkt5cmNNWEVXNElGOTd2VEFXSWswK0gxeC9wVzkxS3pZS25TdE9oM00wUjFtMkUvVkx2OTJUdQoyTWMydkU3R3ZaWmR2TjNJbFRPWjNHTnZkakoyNkRRQitwNWFEcEdYSE9YYkhZU21XK0c1WnNObkQ2bDFpR0RRCnRQRlh3ZFB3ZGVqK09nQWhpQ1QrdGJvME8wZlRGRUx5MmJOelh1YkVEZ3NQN2NZeVl3MkEyVHExUy92Unk1bUcKOS91RDcvTHREM2F2UTB5enIvYzFJSDBIdkcxTnNGOVlXOERybUkrSGRxTG9ZeThoaUgvcmtQZEZqUVdtMkFCZwowd291SUx4SHVRTFR6U0lGcGRLOUVYbW41Zz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    admissionReviewVersions: ["v1beta1"]
+    sideEffects: None
+
+# In previous steps we have deployed demo webhook which does below
+# - Denies all request for pod to run as root in container if no securityContext is provided.
+# - If no value is set for runAsNonRoot, a default of true is applied, and the user ID defaults to 1234
+# - Allow to run containers as root if runAsNonRoot set explicitly to false in the securityContext
+# In next steps we have added some pod definitions file for each scenario. Deploy those pods with existing definitions file and validate the behaviour of our webhook
+
+
+
+----------
+#controlplane ~ ➜  cat pod-with-defaults.yaml 
+# A pod with no securityContext specified.
+# Without the webhook, it would run as user root (0). The webhook mutates it
+# to run as the non-root user with uid 1234.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-defaults
+  labels:
+    app: pod-with-defaults
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sh", "-c", "echo I am running as user $(id -u)"]
+
+
+#  securityContext:
+#     runAsNonRoot: true
+#     runAsUser: 1234
+
+#I am running as user 1234
+
+----
+
+#ontrolplane ~ ➜  cat pod-with-override.yaml 
+# A pod with a securityContext explicitly allowing it to run as root.
+# The effect of deploying this with and without the webhook is the same. The
+# explicit setting however prevents the webhook from applying more secure
+# defaults.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-override
+  labels:
+    app: pod-with-override
+spec:
+  restartPolicy: OnFailure
+  securityContext:
+    runAsNonRoot: false
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sh", "-c", "echo I am running as user $(id -u)"]
+
+#securityContext:
+#    runAsNonRoot: false
+
+# I am running as user 0
+-----
+# controlplane ~ ✖ cat pod-with-conflict.yaml 
+
+# A pod with a conflicting securityContext setting: it has to run as a non-root
+# user, but we explicitly request a user id of 0 (root).
+# Without the webhook, the pod could be created, but would be unable to launch
+# due to an unenforceable security context leading to it being stuck in a
+# 'CreateContainerConfigError' status. With the webhook, the creation of
+# the pod is outright rejected.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-conflict
+  labels:
+    app: pod-with-conflict
+spec:
+  restartPolicy: OnFailure
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 0
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sh", "-c", "echo I am running as user $(id -u)"]
+
+
+# controlplane ~ ➜  k create -f pod-with-conflict.yaml 
+# Error from server: error when creating "pod-with-conflict.yaml": admission webhook "webhook-server.webhook-demo.svc" denied the request: runAsNonRoot specified, but runAsUser set to 0 (the root user)
+

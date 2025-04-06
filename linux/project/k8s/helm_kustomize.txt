@@ -1,0 +1,81 @@
+root@controlplane:~# curl https://baltocdn.com/helm/signing.asc | apt-key add -
+root@controlplane:~# apt-get install apt-transport-https --yes
+root@controlplane:~# echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+root@controlplane:~# apt-get update
+root@controlplane:~# apt-get install helm
+
+These four lines are used to install **Helm**, the package manager for Kubernetes, on a **Debian-based Linux system** (such as Ubuntu). Here’s what each command does:
+
+1. **Add the Helm GPG signing key:**
+   ```bash
+   curl https://baltocdn.com/helm/signing.asc | apt-key add -
+   ```
+   - Downloads the **GPG key** for Helm from `baltocdn.com` using `curl`.
+   - Pipes (`|`) the downloaded key to `apt-key add -`, which adds it to the system’s list of trusted keys.  
+   - This ensures that the Helm packages are verified before installation.
+
+2. **Ensure HTTPS support for APT:**
+   ```bash
+   apt-get install apt-transport-https --yes
+   ```
+   - Installs `apt-transport-https`, which allows APT to download packages over HTTPS.
+   - The `--yes` flag automatically confirms the installation without prompting.
+
+3. **Add the Helm repository to APT sources:**
+   ```bash
+   echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+   ```
+   - Adds the Helm repository URL to a new file `/etc/apt/sources.list.d/helm-stable-debian.list` so that `apt` can retrieve Helm packages from this repository.
+
+4. **Update APT and install Helm:**
+   ```bash
+   apt-get update
+   apt-get install helm
+   ```
+   - `apt-get update` refreshes the package index to recognize the newly added Helm repository.
+   - `apt-get install helm` installs Helm.
+
+### Summary
+This script ensures that the system has **HTTPS support**, **trusts the Helm signing key**, 
+**adds the Helm repository**, and **installs Helm**. After running these commands, you should be able to use `helm` to manage Kubernetes applications.
+
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+helm install bravo bitnami/drupal
+
+helm pull --untar  bitnami/apache
+
+controlplane ~ ➜  helm repo list
+NAME            URL                                                 
+bitnami         https://charts.bitnami.com/bitnami                  
+puppet          https://puppetlabs.github.io/puppetserver-helm-chart
+hashicorp       https://helm.releases.hashicorp.com    
+
+Note: You can read the Bitnami documentation for more.
+https://github.com/bitnami/charts/tree/master/bitnami/apache/#installing-the-chart
+
+
+kubectl get secret
+kubectl get secret -A
+controlplane ~ ➜  kubectl get secret -A
+NAMESPACE     NAME                              TYPE                            DATA   AGE
+default       sh.helm.release.v1.mywebapp.v1    helm.sh/release.v1              1      25m
+
+ kubectl get secret sh.helm.release.v1.mywebapp.v1 -o yaml > mywebapp.yaml
+
+kubectl get secret sh.helm.release.v1.testchart.v1 -o json
+kubectl get secret sh.helm.release.v1.testchart.v1 -o jsonpath="{ .data.release }" | base64 -d | base64 -d | gunzip -c | jq '.chart.templates[].data' | tr -d '"' | base64 -d
+
+https://medium.com/@brent.gruber77/the-power-of-kustomize-and-helm-5773d0f4d95e
+
+When to use which:
+Use Helm when:
+You need to package and distribute Kubernetes applications. 
+You want to manage the application lifecycle (install, upgrade, rollback). 
+Your application has complex configurations or dependencies. 
+Use Kustomize when:
+You need to customize existing Kubernetes configurations. 
+You want to apply environment-specific changes to your manifests. 
+You want a simpler approach to managing Kubernetes resources.
+

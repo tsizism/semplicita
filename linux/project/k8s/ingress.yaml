@@ -1,0 +1,47 @@
+# curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl-convert
+# chmod +x kubectl-convert 
+# mv -v kubectl-convert /usr/local/bin/
+# kubectl-convert -f ingress-old.yaml --output-version networking.k8s.io/v1 > ingress-new
+
+# controlplane ~ ➜  cat ingress-old.yaml 
+---
+# Deprecated API version
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /video-service
+        pathType: Prefix
+        backend:
+          serviceName: ingress-svc
+          servicePort: 80
+
+---
+
+# controlplane ~ ➜  cat ingress-new.yaml 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  creationTimestamp: null
+  name: ingress-space
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: ingress-svc
+            port:
+              number: 80
+        path: /video-service
+        pathType: Prefix
+status:
+  loadBalancer: {}

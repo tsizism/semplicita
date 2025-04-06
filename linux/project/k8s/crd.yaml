@@ -1,0 +1,178 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: internals.datasets.kodekloud.com
+spec:
+  group: datasets.kodekloud.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                internalLoad:
+                  type: string
+                range:
+                  type: integer
+                percentage:
+                  type: string
+  scope: Namespaced
+  names:
+    plural: internals
+    singular: internal
+    kind: Internal
+    shortNames:
+    - int
+---
+
+# controlplane ~ ➜  cat custom.yaml 
+kind: Internal
+apiVersion: datasets.kodekloud.com/v1
+metadata:
+  name: internal-space
+  namespace: default
+spec:
+  internalLoad: "high"
+  range: 80
+  percentage: "50"
+
+----
+
+# controlplane ~ ➜  k get Internal
+# NAME             AGE
+# internal-space   3s
+
+# controlplane ~ ➜  k get crd collectors.monitoring.controller -o yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: "2025-04-01T00:27:00Z"
+  generation: 1
+  name: collectors.monitoring.controller
+  resourceVersion: "1426"
+  uid: 04da876c-4681-4c81-9cf6-55dcb376e069
+spec:
+  conversion:
+    strategy: None
+  group: monitoring.controller
+  names:
+    kind: Collector
+    listKind: CollectorList
+    plural: collectors
+    shortNames:
+    - collect
+    singular: collector
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              image:
+                type: string
+              name:
+                type: string
+              replicas:
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: Collector
+    listKind: CollectorList
+    plural: collectors
+    shortNames:
+    - collect
+    singular: collector
+  conditions:
+  - lastTransitionTime: "2025-04-01T00:27:00Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: "2025-04-01T00:27:00Z"
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1
+
+----
+
+#controlplane ~ ➜  k get crd globals.traffic.controller -o yaml 
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: "2025-04-01T00:27:01Z"
+  generation: 1
+  name: globals.traffic.controller
+  resourceVersion: "1430"
+  uid: 2b77defe-e699-474b-a9c2-a7eea76babf4
+spec:
+  conversion:
+    strategy: None
+  group: traffic.controller
+  names:
+    kind: Global
+    listKind: GlobalList
+    plural: globals
+    shortNames:
+    - gb
+    singular: global
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              access:
+                type: boolean
+              dataField:
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: Global
+    listKind: GlobalList
+    plural: globals
+    shortNames:
+    - gb
+    singular: global
+  conditions:
+  - lastTransitionTime: "2025-04-01T00:27:01Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: "2025-04-01T00:27:01Z"
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1
+
+----
+kind: Global
+apiVersion: traffic.controller/v1
+metadata:
+  name: datacenter
+spec:
+  dataField: 2
+  access: true

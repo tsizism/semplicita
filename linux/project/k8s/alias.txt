@@ -1,4 +1,10 @@
-alias kgp='k get pods -A -o wide'; alias kga='k get all -A -o wide'; alias ll='ls -alF'
+cat /etc/*release*
+cat /etc/os-release
+
+kubeconfig location
+[[ ! -z "$KUBECONFIG" ]] && echo "$KUBECONFIG" || echo "$HOME/.kube/config"
+
+alias h=history; kgp='k get pods -A -o wide'; alias kga='k get all -A -o wide'; alias l='ls -alF'
 alias kgy='f(){ k get  "$1" -o yaml | more; }; f'
 
 alias kga='k get all'
@@ -254,3 +260,5 @@ rd=rmdir
 run-help=man
 vi=vim
 which-command=whence
+
+

@@ -1,0 +1,8 @@
+bases:
+  - ../../base
+
+resources:
+  - mysql-depl.yaml
+
+patches:
+  - configMap-patch.yaml

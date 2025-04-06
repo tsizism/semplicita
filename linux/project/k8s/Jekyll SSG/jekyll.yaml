@@ -1,0 +1,152 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer-role
+  namespace: development
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  - pods/exec
+  - pods/attach
+  - persistentvolumeclaims 
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: developer-rolebinding
+  namespace: development 
+subjects:
+- kind: User
+  name: martin
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer-role
+  apiGroup: rbac.authorization.k8s.io
+
+# 'developer-role', should have all permissions(*) for persistentvolumeclaims in development namespace
+# 'developer-role', should have all(*) permissions for services in development namespace
+# 'developer-role', should have all(*) permissions for pods in development namespace
+-----
+
+
+# controlplane ~ ➜  mkdir /site; chmod 777 /site/
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jekyll-site
+  namespace: development
+spec:
+  volumeName: jekyll-site
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+StorageClass:      local-storage
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jekyll-site
+  namespace: development
+spec:
+  storageClassName: "local-storage"
+  volumeName: jekyll-site
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+
+# set context 'developer' with user = 'martin' and cluster = 'kubernetes' as the current context.
+
+k config set-context developer --user=martin
+k config use-context developer
+
+
+
+
+- context:
+    cluster: kubernetes
+    user: martin
+  name: developer  
+
+- name: martin
+  user:
+    client-key: /root/martin.key
+    client-certificate: /root/martin.crt
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jekyll
+  namespace: development
+spec:
+  type: NodePort
+  selector:
+    run: jekyll
+  ports:
+    - port: 8080
+      targetPort: 4000
+      nodePort: 30097
+
+k run --image gcr.io/kodekloud/customimage/jekyll 
+kubectl run jekyll2 -it --image=gcr.io/kodekloud/customimage/jekyll -- jekyll new /site
+
+pod: 'jekyll' has an initContainer, name: 'copy-jekyll-site', image: 'gcr.io/kodekloud/customimage/jekyll'
+initContainer: 'copy-jekyll-site', command: [ "jekyll", "new", "/site" ] (command to run: jekyll new /site)
+pod: 'jekyll', initContainer: 'copy-jekyll-site', mountPath = '/site'
+pod: 'jekyll', initContainer: 'copy-jekyll-site', volume name = 'site'
+
+pod: 'jekyll', container: 'jekyll', image = 'gcr.io/kodekloud/customimage/jekyll-serve'
+pod: 'jekyll', container: 'jekyll', volume name = 'site'
+pod: 'jekyll', container: 'jekyll', mountPath = '/site'
+pod: 'jekyll', uses volume called 'site' with pvc = 'jekyll-site'
+pod: 'jekyll' uses label 'run=jekyll'
+
+    # command: ['jekyll', 'new', '/site']
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jekyll
+  namespace: development
+  labels:
+    run: jekyll
+spec:
+  initContainers:
+  - name: copy-jekyll-site
+    image: gcr.io/kodekloud/customimage/jekyll
+    command: ['new', '/site']
+    volumeMounts:
+    - mountPath: /site
+      name: site
+  containers:      
+  - name: jekyll
+    image: gcr.io/kodekloud/customimage/jekyll-serve
+    volumeMounts:
+    - mountPath: /site
+      name: site
+  volumes:
+  - name: site
+    persistentVolumeClaim:
+      claimName: jekyll-site
+
+
+

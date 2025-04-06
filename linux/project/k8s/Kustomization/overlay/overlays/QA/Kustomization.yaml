@@ -1,0 +1,14 @@
+bases:
+  - ../../base
+commonLabels:
+  environment: QA
+
+# Perform this using an inline JSON6902 patch.
+patches:
+  - target:
+      kind: Deployment
+      name: api-deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: caddy
