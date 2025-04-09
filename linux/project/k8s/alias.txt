@@ -1,10 +1,26 @@
+alias alias h=history; alias l='ls -alF'
 cat /etc/*release*
 cat /etc/os-release
+
+ss -nltp | grep 6443
+
+netstat -tnlp | grep 6443
+# or
+ss -tnlp | grep 6443
+
+crictl ps -a | grep kube-apiserver
+# or
+docker ps -a | grep kube-apiserver
+
+crictl logs <kube-apiserver-container-id>
+# or
+journalctl -u kubelet -f
+
 
 kubeconfig location
 [[ ! -z "$KUBECONFIG" ]] && echo "$KUBECONFIG" || echo "$HOME/.kube/config"
 
-alias h=history; kgp='k get pods -A -o wide'; alias kga='k get all -A -o wide'; alias l='ls -alF'
+alias d=docker; alias k=kubectl; alias h=history; alias kgp='k get pods -A -o wide'; alias kga='k get all -A -o wide'; alias l='ls -alF'
 alias kgy='f(){ k get  "$1" -o yaml | more; }; f'
 
 alias kga='k get all'

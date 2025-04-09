@@ -1,3 +1,22 @@
+alias h=history; alias l='ls -alF' ; alias k=kubectl
+#Chalange 1
+# controlplane ~ ➜  mkdir /site; chmod 777 /site/
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: jekyll
+  namespace: development
+spec:
+  type: NodePort
+  selector:
+    run: jekyll
+  ports:
+    - port: 8080
+      targetPort: 4000
+      nodePort: 30097
+
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -41,22 +60,7 @@ roleRef:
 -----
 
 
-# controlplane ~ ➜  mkdir /site; chmod 777 /site/
 
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: jekyll-site
-  namespace: development
-spec:
-  volumeName: jekyll-site
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-
-StorageClass:      local-storage
 
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -73,13 +77,9 @@ spec:
       storage: 1Gi
 
 
+
+
 # set context 'developer' with user = 'martin' and cluster = 'kubernetes' as the current context.
-
-k config set-context developer --user=martin
-k config use-context developer
-
-
-
 
 - context:
     cluster: kubernetes
@@ -106,21 +106,23 @@ spec:
       targetPort: 4000
       nodePort: 30097
 
-k run --image gcr.io/kodekloud/customimage/jekyll 
-kubectl run jekyll2 -it --image=gcr.io/kodekloud/customimage/jekyll -- jekyll new /site
+# k run --image gcr.io/kodekloud/customimage/jekyll 
+# kubectl run jekyll2 -it --image=gcr.io/kodekloud/customimage/jekyll -- jekyll new /site
 
-pod: 'jekyll' has an initContainer, name: 'copy-jekyll-site', image: 'gcr.io/kodekloud/customimage/jekyll'
-initContainer: 'copy-jekyll-site', command: [ "jekyll", "new", "/site" ] (command to run: jekyll new /site)
-pod: 'jekyll', initContainer: 'copy-jekyll-site', mountPath = '/site'
-pod: 'jekyll', initContainer: 'copy-jekyll-site', volume name = 'site'
+# pod: 'jekyll' has an initContainer, name: 'copy-jekyll-site', image: 'gcr.io/kodekloud/customimage/jekyll'
+# initContainer: 'copy-jekyll-site', command: [ "jekyll", "new", "/site" ] (command to run: jekyll new /site)
+# pod: 'jekyll', initContainer: 'copy-jekyll-site', mountPath = '/site'
+# pod: 'jekyll', initContainer: 'copy-jekyll-site', volume name = 'site'
 
-pod: 'jekyll', container: 'jekyll', image = 'gcr.io/kodekloud/customimage/jekyll-serve'
-pod: 'jekyll', container: 'jekyll', volume name = 'site'
-pod: 'jekyll', container: 'jekyll', mountPath = '/site'
-pod: 'jekyll', uses volume called 'site' with pvc = 'jekyll-site'
-pod: 'jekyll' uses label 'run=jekyll'
+# pod: 'jekyll', container: 'jekyll', image = 'gcr.io/kodekloud/customimage/jekyll-serve'
+# pod: 'jekyll', container: 'jekyll', volume name = 'site'
+# pod: 'jekyll', container: 'jekyll', mountPath = '/site'
+# pod: 'jekyll', uses volume called 'site' with pvc = 'jekyll-site'
+# pod: 'jekyll' uses label 'run=jekyll'
 
     # command: ['jekyll', 'new', '/site']
+
+
 
 apiVersion: v1
 kind: Pod
@@ -133,7 +135,7 @@ spec:
   initContainers:
   - name: copy-jekyll-site
     image: gcr.io/kodekloud/customimage/jekyll
-    command: ['new', '/site']
+    command: ['jekyll','new','/site']
     volumeMounts:
     - mountPath: /site
       name: site
@@ -150,3 +152,673 @@ spec:
 
 
 
+# k config set-context developer --user=martin
+
+LastStep
+k config use-context developer
+//////////////////////////////////////////////////////////////////
+#Challang2 
+controlplane
+k get nodes
+crictl ps -a
+cp /etc/kubernetes/pki/ca.crt /etc/kubernetes/pki/ca-authority.crt
+
+nod01
+k get nodes
+vi /root/.kube/config 
+k uncordon node01
+k label node node01  node-role.kubernetes.io/worker=worker
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gop-fs-service
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 31200
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gop-fs-service
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /web
+  persistentVolumeReclaimPolicy: Retain
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc
+spec:
+  volumeName: data-pv
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+Create a pod for file server, name: 'gop-file-server'
+pod: gop-file-server image: 'kodekloud/fileserver'
+pod: gop-file-server mountPath: '/web'
+pod: gop-file-server volumeMount name: 'data-store'
+pod: gop-file-server persistent volume name: data-store
+pod: gop-file-server persistent volume claim used: 'data-pvc'
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gop-file-server
+spec:
+  containers:
+  - image: kodekloud/fileserver
+    name: fileserver
+    volumeMounts:
+    - mountPath: /web
+      name: data-store
+  volumes:
+  - name: data-store
+    persistentVolumeClaim:
+      claimName: data-pvc
+                        
+
+
+server: https://controlplane:6443 or server: https://<actual-IP-of-control-plane>:6443
+crictl ps -a | grep kube-apiserver  or docker ps -a | grep kube-apiserver
+crictl logs <kube-apiserver-container-id>  or journalctl -u kubelet -f
+netstat -tnlp | grep 6443 or ss -tnlp | grep 6443
+telnet <control-plane-IP> 6443 # or nc -zv <control-plane-IP> 6443
+kubectl config current-context or kubectl config view
+cp ca.crt ca-authority.crt
+
+ /root/.kube/config
+kubeadm reset [flags]
+kubectl -n kube-system get cm kubeadm-config -o yaml
+
+sudo systemctl restart kubelet
+sudo systemctl status kubelet
+journalctl -u kubelet -f
+
+ cat /etc/kubernetes/admin.conf 
+controlplane
+cat /etc/kubernetes/manifests/kube-apiserver.yaml 
+cp ca.crt ca-authority.crt
+
+journalctl -u kubelet -f
+cat /root/.kube/config 
+l /var/lib/kubelet/config.yaml
+sudo systemctl status kubelet
+sudo journalctl -u kubelet -f
+sudo systemctl restart kubelet
+curl -k https://localhost:6443/healthz
+curl -k https://localhost:6443/livez?verbose
+kubectl get --raw='/readyz?verbose'
+cat /etc/kubernetes/manifests/kube-apiserver.yaml 
+ip addr
+tail -f /var/log/kube-apiserver.log
+
+kubeadm version
+kubelet --version
+kubectl version
+
+kubeadm reset
+
+#Chalange 3
+k create ns vote
+
+          
+
+controlplane ~ ➜  k -n vote get pods -l deployment=vote-deployment
+NAME                               READY   STATUS              RESTARTS   AGE
+vote-deployment-5666454b8c-kmvs6   0/1     ContainerCreating   0          5s
+
+:q
+:
+# Create a new service: name = vote-service
+# port = '5000'
+# targetPort = '80'
+# nodePort= '31000'
+# service endpoint exposes deployment 'vote-deployment'
+
+
+controlplane ~ ➜  
+
+controlplane ~ ➜  k describe -n vote svc vote-service 
+Selector:                 deployment=vote-deployment
+Endpoints:                172.17.1.8:80
+
+controlplane ~ ✖ k  -n vote get pods --show-labels 
+NAME                               READY   STATUS    RESTARTS   AGE     LABELS
+vote-deployment-5666454b8c-kmvs6   1/1     Running   0          4m13s   app=vote,deployment=vote-deployment,pod-template-hash=5666454b8c
+worker-7d7c6798d6-n2ck6            1/1     Running   0          9m21s   app=worker,pod-template-hash=7d7c6798d6
+
+curl http://localhost:31000
+cu-rl http://controlplane:31000
+
+k run test-pod --rm -it --image=busybox -- /bin/sh
+wget -qO- http://vote-service 
+wget -qO- http://vote-service.vote.svc.cluster.local
+
+
+wget -qO- Explained
+-q: Quiet mode — suppresses output messages (no progress bars or status).
+-O -: The capital O tells wget to write the downloaded content to a file. When followed by -, 
+it means "write to standard output" (i.e., print to the terminal instead of saving to a file).
+
+alias h=history; alias l='ls -alF'
+
+
+controlplane ~ ➜  cat svc.yaml 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vote
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-service
+  namespace: vote
+spec:
+  ports:
+  - name: input
+    port: 5000
+    targetPort: 80
+    nodePort: 31000
+  type: NodePort
+  selector:
+    app: vote-deployment    
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: vote
+spec:
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  type: ClusterIP
+  selector:
+    app: redis-deployment    
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: vote
+spec:
+  ports:
+  - name: db
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+  selector:
+    app: db-deployment
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: result-service
+  namespace: vote
+spec:
+  ports:
+  - name: output
+    port: 5001
+    targetPort: 80
+    nodePort: 31001
+  type: NodePort
+  selector:
+    app: result-deployment
+
+---
+
+controlplane ~ ➜  cat r.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: result-deployment
+  name: result-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: result-deployment
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: result-deployment
+    spec:
+      containers:
+      - image: kodekloud/examplevotingapp_result:before
+        name: examplevotingapp-result-5b9l9
+        ports:
+        - containerPort: 80
+
+---
+controlplane ~ ➜  cat d.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: db-deployment
+  name: db-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-deployment
+  template:
+    metadata:
+      labels:
+        app: db-deployment
+    spec:
+      containers:
+      - image: postgres:9.4
+        name: postgres
+        ports:
+        - containerPort: 80
+        env:
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: trust
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: db-data
+      volumes:
+        - name: db-data
+          emptyDir:
+            sizeLimit: 1Gi
+
+
+---
+
+controlplane ~ ➜  cat w.yaml 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vote
+
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: kodekloud/examplevotingapp_worker
+
+
+---
+controlplane ~ ➜  cat redis.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-deployment
+  template:
+    metadata:
+      labels:
+        app: redis-deployment
+    spec:
+      containers:
+        - image: redis:alpine
+          name: redis-container
+          volumeMounts:
+            - mountPath: /data
+              name: redis-data
+      volumes:
+        - name: redis-data
+          emptyDir:
+            sizeLimit: 500Mi
+controlplane ~ ➜  cat v.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote-deployment
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vote-deployment
+  template:
+    metadata:
+      labels:
+        app: vote-deployment
+    spec:
+      containers:
+        - name: vote
+          image: kodekloud/examplevotingapp_vote:before
+          ports:
+            - containerPort: 80
+
+
+
+            Create a new service: name = vote-service
+
+
+port = '5000'
+targetPort = '80'
+nodePort= '31000'
+service endpoint exposes deployment 'vote-deployment'
+Create a deployment: name = 'vote-deployment'
+image = 'kodekloud/examplevotingapp_vote:before'
+status: 'Running'
+Create a deployment: name = 'vote-deployment'
+image = 'kodekloud/examplevotingapp_vote:before'
+status: 'Running'
+Create new deployment, name: 'redis-deployment'
+image: 'redis:alpine'
+Volume Type: 'EmptyDir'
+Volume Name: 'redis-data'
+mountPath: '/data'
+status: 'Running'
+Create new deployment. name: 'worker'
+image: 'kodekloud/examplevotingapp_worker'
+status: 'Running'
+Create new service: 'db'
+port: '5432'
+targetPort: '5432'
+type: 'ClusterIP'
+service endpoint exposes deployment 'db-deployment'
+Create new deployment. name: 'db-deployment'
+image: 'postgres:9.4' and add the env: 'POSTGRES_HOST_AUTH_METHOD=trust'
+Volume Type: 'EmptyDir'
+Volume Name: 'db-data'
+mountPath: '/var/lib/postgresql/data'
+status: 'Running'
+Create new deployment, name: 'result-deployment'
+image: 'kodekloud/examplevotingapp_result:before'
+status: 'Running'
+service 'result-service' endpoint exposes deployment 'result-deployment'
+result-service
+port: '5001'
+targetPort: '80'
+NodePort: '31001'
+
+----------------------------------------------#Chalange 4 ----------------------------------
+
+controlplane ~ ➜  k describe configmaps  redis-cluster-configmap  
+Name:         redis-cluster-configmap
+Namespace:    default
+Data
+====
+redis.conf:
+----
+cluster-enabled yes
+cluster-require-full-coverage no
+cluster-node-timeout 15000
+cluster-config-file /data/nodes.conf
+cluster-migration-barrier 1
+appendonly yes
+protected-mode no
+update-node.sh:
+----
+#!/bin/sh
+REDIS_NODES="/data/nodes.conf"
+sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+exec "$@"
+
+controlplane ~ ➜  k get configmaps  redis-cluster-configmap   -o yaml 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster-configmap
+  namespace: default
+data:
+  redis.conf: |-
+    cluster-enabled yes
+    cluster-require-full-coverage no
+    cluster-node-timeout 15000
+    cluster-config-file /data/nodes.conf
+    cluster-migration-barrier 1
+    appendonly yes
+    protected-mode no
+  update-node.sh: |
+    #!/bin/sh
+    REDIS_NODES="/data/nodes.conf"
+    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+    exec "$@"
+
+
+It sets up the Redis Cluster by connecting all Redis pods together and assigning master/replica roles.
+That command is used to initialize a Redis Cluster across the pods created by your StatefulSet. 
+Here's a breakdown of what it does and why it's useful:
+    
+k exec -it redis-cluster-0 -- redis-cli --cluster create --cluster-replicas 1 $(kubectl get pods -l app=redis-cluster -o jsonpath='{range.items[*]}{.status.podIP}:6379 {end}')
+
+1. kubectl exec -it redis-cluster-0 --
+Enters the first Redis pod (redis-cluster-0) to run a command inside it.
+
+2. redis-cli --cluster create --cluster-replicas 1
+Tells Redis CLI to create a Redis Cluster and to use 1 replica per master.
+
+3. $(kubectl get pods -l app=redis-cluster -o jsonpath='{range.items[*]}{.status.podIP}:6379 {end}')
+Dynamically fetches all the IP addresses of the Redis pods labeled app=redis-cluster, 
+appending :6379 (the Redis port) to each one.
+For example, if the pods have these IPs: 10.0.0.1, 10.0.0.2, ..., 10.0.0.6
+It turns into: 10.0.0.1:6379 10.0.0.2:6379 ... 10.0.0.6:6379
+
+You get a Redis Cluster with:
+3 master nodes; 3 replica nodes (1 replica per master)
+Fully interconnected using pod IPs
+Ready for distributed Redis operations
+
+
+k create service clusterip redis-cluster-service --tcp=5678:8080
+--tcp=[]:  Port pairs can be specified as '<port>:<targetPort>'. 
+Ports - service name 'redis-cluster-service', port name: 'client', port: '6379'
+Ports - service name 'redis-cluster-service', port name: 'client', targetPort: '6379'
+ k create service clusterip redis-cluster-service --tcp=6379:6379  --dry-run=client -o yaml
+
+Ports - service name 'redis-cluster-service', port name: 'gossip', port: '16379'
+Ports - service name 'redis-cluster-service', port name: 'gossip', targetPort: '16379'
+k create service clusterip redis-cluster-service --tcp=16379:16379
+
+
+controlplane ~ ➜  cat  svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: redis-cluster
+  name: redis-cluster-service
+spec:
+  ports:
+  - name: client
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  - name: gossip
+    port: 16379
+    protocol: TCP
+    targetPort: 16379
+  selector:
+    app: redis-cluster
+  type: ClusterIP
+
+
+Create StatefulSet - Name: redis-cluster
+Replicas: 6
+Pods status: Running (All 6 replicas)
+Image: redis:5.0.1-alpine, Label = app: redis-cluster
+container name: redis, command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+Env: name: 'POD_IP', valueFrom: 'fieldRef', fieldPath: 'status.podIP' (apiVersion: v1)
+Ports - name: 'client', containerPort: '6379'
+
+This assumes:
+You have a headless service named redis-cluster already defined (required by StatefulSets for stable DNS).
+Your /conf/ directory and corresponding scripts/configs (update-node.sh, redis.conf) 
+are handled via ConfigMap, volumeMounts, or image defaults.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+spec:
+  serviceName: "redis-cluster"
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+    spec:
+      containers:
+        - name: redis
+          image: redis:5.0.1-alpine
+          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+          ports:
+            - name: client
+              containerPort: 6379
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+
+PersistentVolume - Name: redis01
+Access modes: ReadWriteOnce
+Size: 1Gi
+hostPath: /redis01, 
+directory should be created on worker node                  
+
+
+
+Create six PersistentVolumes with names redis01-redis06
+hostPath: /redis01 -  /redis06
+Access modes: ReadWriteOnce
+Size: 1Gi
+
+mkdir /redis01 /redis02 /redis03 /redis04 /redis05 /redis06   
+chmod 777  /redis01 /redis02 /redis03 /redis04 /redis05 /redis06   
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis01
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis01
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis02
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis02
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis03
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis03
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis04
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis04
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis05
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis05
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis06
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /redis06
