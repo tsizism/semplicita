@@ -1,4 +1,4 @@
-alias alias h=history; alias l='ls -alF'
+alias h=history; alias l='ls -alF'
 cat /etc/*release*
 cat /etc/os-release
 

@@ -523,6 +523,8 @@ spec:
         - name: redis-data
           emptyDir:
             sizeLimit: 500Mi
+
+
 controlplane ~ ➜  cat v.yaml 
 apiVersion: apps/v1
 kind: Deployment
@@ -657,6 +659,82 @@ You get a Redis Cluster with:
 Fully interconnected using pod IPs
 Ready for distributed Redis operations
 
+controlplane ~ ➜  kubectl exec -it redis-cluster-0 -- redis-cli --cluster create --cluster-replicas 1 $(kubectl get pods -l app=redis-cluster -o jsonpath='{range.items[*]}{.status.podIP}:6379 {end}')
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 172.17.1.7:6379 to 172.17.1.4:6379
+Adding replica 172.17.1.8:6379 to 172.17.1.5:6379
+Adding replica 172.17.1.9:6379 to 172.17.1.6:6379
+M: 1ec1da586da9c4fe6eb246dfe74829c367e3aa95 172.17.1.4:6379
+   slots:[0-5460] (5461 slots) master
+M: c503f25229a7d25d7a977a351731c98702542cfa 172.17.1.5:6379
+   slots:[5461-10922] (5462 slots) master
+M: 4a5ca6fef1b2857549461a3c2a9423bc21f0c16e 172.17.1.6:6379
+   slots:[10923-16383] (5461 slots) master
+S: d3958ada8cb2738494fe23d732b47ab4f5b67750 172.17.1.7:6379
+   replicates 1ec1da586da9c4fe6eb246dfe74829c367e3aa95
+S: c871831ebbcbe9412513b7caac8d15dbdee36edf 172.17.1.8:6379
+   replicates c503f25229a7d25d7a977a351731c98702542cfa
+S: 2045470e66bea276efba3a349854cc758cc050f5 172.17.1.9:6379
+   replicates 4a5ca6fef1b2857549461a3c2a9423bc21f0c16e
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+....
+>>> Performing Cluster Check (using node 172.17.1.4:6379)
+M: 1ec1da586da9c4fe6eb246dfe74829c367e3aa95 172.17.1.4:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: c503f25229a7d25d7a977a351731c98702542cfa 172.17.1.5:6379
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: d3958ada8cb2738494fe23d732b47ab4f5b67750 172.17.1.7:6379
+   slots: (0 slots) slave
+   replicates 1ec1da586da9c4fe6eb246dfe74829c367e3aa95
+M: 4a5ca6fef1b2857549461a3c2a9423bc21f0c16e 172.17.1.6:6379
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: c871831ebbcbe9412513b7caac8d15dbdee36edf 172.17.1.8:6379
+   slots: (0 slots) slave
+   replicates c503f25229a7d25d7a977a351731c98702542cfa
+S: 2045470e66bea276efba3a349854cc758cc050f5 172.17.1.9:6379
+   slots: (0 slots) slave
+   replicates 4a5ca6fef1b2857549461a3c2a9423bc21f0c16e
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+
+/ # cat /data/nodes.conf 
+c503f25229a7d25d7a977a351731c98702542cfa 172.17.1.5:6379@16379 master - 0 1744240774549 2 connected 5461-10922
+d3958ada8cb2738494fe23d732b47ab4f5b67750 172.17.1.7:6379@16379 slave 1ec1da586da9c4fe6eb246dfe74829c367e3aa95 0 1744240775551 4 connected
+4a5ca6fef1b2857549461a3c2a9423bc21f0c16e 172.17.1.6:6379@16379 master - 0 1744240773000 3 connected 10923-16383
+c871831ebbcbe9412513b7caac8d15dbdee36edf 172.17.1.8:6379@16379 slave c503f25229a7d25d7a977a351731c98702542cfa 0 1744240772000 5 connected
+2045470e66bea276efba3a349854cc758cc050f5 172.17.1.9:6379@16379 slave 4a5ca6fef1b2857549461a3c2a9423bc21f0c16e 0 1744240773545 6 connected
+1ec1da586da9c4fe6eb246dfe74829c367e3aa95 172.17.1.4:6379@16379 myself,master - 0 1744240774000 1 connected 0-5460
+vars currentEpoch 6 lastVoteEpoch 0
+
+/ # cat /conf/redis.conf 
+cluster-enabled yes
+cluster-require-full-coverage no
+cluster-node-timeout 15000
+cluster-config-file /data/nodes.conf
+cluster-migration-barrier 1
+appendonly yes
+protected-mode no/ # 
+
+/ # cat /conf/update-node.sh 
+#!/bin/sh
+REDIS_NODES="/data/nodes.conf"
+sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+exec "$@"
+/ # 
+
+
 
 k create service clusterip redis-cluster-service --tcp=5678:8080
 --tcp=[]:  Port pairs can be specified as '<port>:<targetPort>'. 
@@ -673,7 +751,6 @@ controlplane ~ ➜  cat  svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: null
   labels:
     app: redis-cluster
   name: redis-cluster-service
@@ -688,57 +765,84 @@ spec:
     protocol: TCP
     targetPort: 16379
   selector:
-    app: redis-cluster
+     app: redis-cluster
   type: ClusterIP
 
 
-Create StatefulSet - Name: redis-cluster
-Replicas: 6
+create statefulset manifest for "
+StatefulSet - Name: redis-cluster Replicas: 6
 Pods status: Running (All 6 replicas)
 Image: redis:5.0.1-alpine, Label = app: redis-cluster
 container name: redis, command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
 Env: name: 'POD_IP', valueFrom: 'fieldRef', fieldPath: 'status.podIP' (apiVersion: v1)
 Ports - name: 'client', containerPort: '6379'
+Ports - name: 'gossip', containerPort: '16379'
+Volume Mount - name: 'conf', mountPath: '/conf', readOnly:'false' (ConfigMap Mount)
+Volume Mount - name: 'data', mountPath: '/data', readOnly:'false' (volumeClaim)
+volumes - name: 'conf', Type: 'ConfigMap', ConfigMap Name: 'redis-cluster-configmap',
+Volumes - name: 'conf', ConfigMap Name: 'redis-cluster-configmap', defaultMode = '0755'
+volumeClaimTemplates - name: 'data'
+volumeClaimTemplates - accessModes: 'ReadWriteOnce'
+volumeClaimTemplates - Storage Request: '1Gi'"
 
 This assumes:
 You have a headless service named redis-cluster already defined (required by StatefulSets for stable DNS).
 Your /conf/ directory and corresponding scripts/configs (update-node.sh, redis.conf) 
 are handled via ConfigMap, volumeMounts, or image defaults.
 
+
+# controlplane ~ ➜  cat sts.yaml 
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis-cluster
 spec:
-  serviceName: "redis-cluster"
-  replicas: 6
+  serviceName: redis-cluster-service
+  replicas: 6 # by default is 1  
   selector:
     matchLabels:
-      app: redis-cluster
+      app: redis-cluster # has to match .spec.template.metadata.labels
   template:
     metadata:
       labels:
-        app: redis-cluster
+        app: redis-cluster # has to match .spec.selector.matchLabels
     spec:
       containers:
-        - name: redis
-          image: redis:5.0.1-alpine
-          command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
-          ports:
-            - name: client
-              containerPort: 6379
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-
-
-PersistentVolume - Name: redis01
-Access modes: ReadWriteOnce
-Size: 1Gi
-hostPath: /redis01, 
-directory should be created on worker node                  
+      - name: redis-cluster-container
+        image: redis:5.0.1-alpine
+        command: ["/conf/update-node.sh", "redis-server", "/conf/redis.conf"]
+        ports:
+          - containerPort: 6379
+            name: client
+          - containerPort: 16379
+            name: gossip
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumeMounts:
+          - name: conf
+            mountPath: /conf
+            readOnly: false
+          - name: data
+            mountPath: /data
+            readOnly: false
+      volumes:          
+        - name: conf
+          configMap:
+            name: redis-cluster-configmap
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: 
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
 
 
 
@@ -822,3 +926,9 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: /redis06
+
+controlplane ~ ➜  k exec -it redis-cluster-0 -- sh
+/data # redis-cli
+127.0.0.1:6379> 
+/data # redis-cli PING
+PONG

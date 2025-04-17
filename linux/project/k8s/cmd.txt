@@ -34,3 +34,33 @@ Why would you use the kompose up command as opposed to kompose convert?
 If you want to convert docker-compose YAML files and deploy to Kubernetes simultaneously.
 
 
+
+Commands shared in the PPT
+kubectl run nginx --image=nginx   (deployment)
+kubectl run nginx --image=nginx --restart=Never   (pod)
+kubectl run nginx --image=nginx --restart=OnFailure   (job)  
+kubectl run nginx --image=nginx  --restart=OnFailure --schedule="* * * * *" (cronJob)
+
+kubectl run nginx -image=nginx --restart=Never --port=80 --namespace=myname --command --serviceaccount=mysa1 --env=HOSTNAME=local --labels=bu=finance,env=dev  --requests='cpu=100m,memory=256Mi' --limits='cpu=200m,memory=512Mi' --dry-run -o yaml - /bin/sh -c 'echo hello world'
+
+kubectl run frontend --replicas=2 --labels=run=load-balancer-example --image=busybox  --port=8080
+kubectl expose deployment frontend --type=NodePort --name=frontend-service --port=6262 --target-port=8080
+kubectl set serviceaccount deployment frontend myuser
+kubectl create service clusterip my-cs --tcp=5678:8080 --dry-run -o yaml
+
+Avoid These CKA/CKAD Mistakes - Or Risk Failing the Exam  
+If you're preparing for the CKA or CKAD exam, this video might literally save your score. We're covering the 10 biggest mistakes candidates make - the kind that turn perfectly good answers into exam-killers.  
+
+From context errors and YAML issues to editor struggles and using the wrong tools, we're calling out everything you need to stop doing to pass these tough certs with confidence. Learn what the exam environment is really like, how partial credit works, and why your mindset matters more than perfection.
+
+⏱ Timestamps  
+📌 0:16 – Mistake 1: Forgetting to Set Context  
+📌 1:15 – Mistake 2: Not Copying & Pasting  
+📌 1:46 – Mistake 3: Weak Linux Shell Skills  
+📌 2:36 – Mistake 4: Poor Task Comprehension  
+📌 3:14 – Mistake 5: Fumbling Text Editors (Vim/Nano)  
+📌 4:16 – Mistake 6: Using the Wrong Troubleshooting Tool  
+📌 5:33 – Mistake 7: Writing Manifests from Scratch  
+📌 6:10 – Mistake 8: Not Double-Checking Work  
+📌 6:31 – Mistake 9: Refusing to Skip Questions  
+📌 7:23 – Mistake 10: Not Practicing Correctly 😏  

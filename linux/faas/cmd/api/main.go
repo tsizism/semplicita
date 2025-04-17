@@ -19,6 +19,13 @@ import (
 	"time"
 )
 
+//5. You are analyzing a system of microservices designed for stock trading. 
+// The queue for the dashboard microservice grows during the trading day and 
+// takes several minutes to drain at the end of trading. How can you address this issue?
+//
+//Impose back pressure to limit the number of messages in the queue.
+//
+
 type config struct {
 	port int
 }
